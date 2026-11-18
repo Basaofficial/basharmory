@@ -5,7 +5,7 @@
   --r:16px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:15px}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body{min-height:100vh;padding-bottom:84px;overflow-x:hidden}
 #fx{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
 #app{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 14px 20px}
@@ -101,3 +101,20 @@ nav button.on{color:var(--g)}
 .thead{position:relative;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .tm{position:absolute;left:-4px;top:-4px;background:#c070ff;color:#000;font-size:9px;font-weight:900;border-radius:5px;padding:0 3px;z-index:3}
 .ico,.doll .slot{position:relative}
+
+/* v1.5 – avatari, imena, tooltip */
+.cz{font-family:Cinzel,serif;letter-spacing:.4px}
+.hero h2{font-family:Cinzel,serif;font-weight:900;font-size:25px;letter-spacing:.4px}
+.av{position:relative;flex:none;border-radius:14px;border:2px solid;background:#111 center/cover;display:grid;place-items:center}
+.av b{color:#000;font-size:20px}
+.av .avdot{position:absolute;right:-3px;top:-3px;width:12px;height:12px;border-radius:50%;background:#555;border:2px solid #000}
+.av .avdot.on{background:var(--g);box-shadow:0 0 8px var(--g)}
+.av .avprof{position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);display:flex;gap:3px}
+.av .avprof span{width:22px;height:22px;border-radius:6px;border:1.5px solid #000;outline:1px solid #3a3a3a;background:#111 center/cover;box-shadow:0 2px 6px #000}
+.hero .av{margin-bottom:12px}
+.list .it .av{border-radius:10px;border-width:1.5px}
+.tiphead{display:flex;gap:10px;align-items:center;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.tiphead .ico{width:48px;height:48px}
+.tipmog{display:flex;gap:10px;align-items:center;background:#140d1c;border:1px solid #c070ff55;border-radius:12px;padding:8px;margin-bottom:10px}
+.tipmog .ico{width:38px;height:38px;border-color:#c070ff}
+.tmm{position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;border-radius:5px;border:1.5px solid #c070ff;background:#111 center/cover;box-shadow:0 0 8px #c070ff88}

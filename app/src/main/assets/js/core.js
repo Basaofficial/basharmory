@@ -5,6 +5,11 @@ const CLASS = {
   "Death Knight":"#C41E3A","Druid":"#FF7C0A","Hunter":"#AAD372","Mage":"#3FC7EB","Paladin":"#F48CBA",
   "Priest":"#FFFFFF","Rogue":"#FFF468","Shaman":"#0070DD","Warlock":"#8788EE","Warrior":"#C69B6D","Monk":"#00FF98"
 };
+const CLASS_ICON = {"Death Knight":"classicon_deathknight","Druid":"classicon_druid","Hunter":"classicon_hunter","Mage":"classicon_mage","Paladin":"classicon_paladin",
+  "Priest":"classicon_priest","Rogue":"classicon_rogue","Shaman":"classicon_shaman","Warlock":"classicon_warlock","Warrior":"classicon_warrior"};
+const PROF_ICON = {"alchemy":"trade_alchemy","blacksmithing":"trade_blacksmithing","enchanting":"trade_engraving","engineering":"trade_engineering",
+  "herbalism":"spell_nature_naturetouchgrow","inscription":"inv_inscription_tradeskill01","jewelcrafting":"inv_misc_gem_01","leatherworking":"trade_leatherworking",
+  "mining":"trade_mining","skinning":"inv_misc_pelt_wolf_01","tailoring":"trade_tailoring","cooking":"inv_misc_food_15","fishing":"trade_fishing","first aid":"spell_holy_sealofsacrifice"};
 const RACE_ID = {"Human":1,"Orc":2,"Dwarf":3,"Night Elf":4,"Undead":5,"Tauren":6,"Gnome":7,"Troll":8,"Goblin":9,"Blood Elf":10,"Draenei":11,"Worgen":22};
 const RACE_MODEL = {1:"human",2:"orc",3:"dwarf",4:"nightelf",5:"scourge",6:"tauren",7:"gnome",8:"troll",9:"goblin",10:"bloodelf",11:"draenei",22:"worgen"};
 const ARMORY = "https://armory.warmane.com";
@@ -122,6 +127,14 @@ async function itemInfo(id){
   } catch(e){} }
   if (info) LS.set("it_"+id, info);
   return info;
+}
+/* Avatar: ikonica klase, okvir u boji klase, online tačka, ispod mini ikonice profesija */
+function avatarHtml(c, size=40, withProfs=false){
+  const col=CLASS[c.class]||"#8cff2e", ic=CLASS_ICON[c.class];
+  const profs = withProfs ? (c.professions||[]).filter(p=>PROF_ICON[String(p.name).toLowerCase()]).slice(0,2) : [];
+  return `<div class="av" style="width:${size}px;height:${size}px;border-color:${col};box-shadow:0 0 ${Math.round(size/3)}px ${col}55;${ic?`background-image:url('${iconUrl(ic)}')`:`background:${col}`}">
+    ${ic?"":`<b>${esc((c.class||"?")[0])}</b>`}${c.online!=null?`<span class="avdot ${c.online?"on":""}"></span>`:""}
+    ${profs.length?`<div class="avprof">${profs.map(p=>`<span title="${esc(p.name)} ${esc(p.skill)}" style="background-image:url('${iconUrl(PROF_ICON[String(p.name).toLowerCase()])}')"></span>`).join("")}</div>`:""}</div>`;
 }
 const iconUrl = (icon, size="large") => icon ? `https://wow.zamimg.com/images/wow/icons/${size}/${String(icon).toLowerCase()}.jpg` : "";
 

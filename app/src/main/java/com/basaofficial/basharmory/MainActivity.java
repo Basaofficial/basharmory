@@ -284,7 +284,7 @@ public class MainActivity extends Activity {
 
     void showPanel(String json, String key) {
         try {
-            int h = (int) (getResources().getDisplayMetrics().heightPixels * 0.50);
+            int h = (int) (getResources().getDisplayMetrics().heightPixels * 0.56);
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) panelWeb.getLayoutParams();
             if (lp.height != h) { lp.height = h; panelWeb.setLayoutParams(lp); }
             panelWeb.setVisibility(View.VISIBLE);
@@ -313,10 +313,24 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 try {
                     overlayModelMode = false;
-                    overlayTitle.setText("3D lik");
+                    String nm = ""; try { nm = new JSONObject(j).optString("name"); } catch (Exception ignored) {}
+                    overlayTitle.setText(nm);
                     overlayWeb.getSettings().setUserAgentString(UA_MOBILE);
                     overlayWeb.loadDataWithBaseURL("https://www.wowhead.com/", modelHtml(j.replace("\"panel\":true", "\"panel\":false")), "text/html", "UTF-8", null);
                     overlay.setVisibility(View.VISIBLE);
+                } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public void warmane() {
+            final String j = lastPanelJson;
+            if (j == null) return;
+            runOnUiThread(() -> {
+                try {
+                    JSONObject o = new JSONObject(j);
+                    String u = o.optString("warmaneUrl");
+                    if (!u.isEmpty()) openOverlay(u, o.optString("name"), true);
                 } catch (Exception ignored) {}
             });
         }

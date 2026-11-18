@@ -11,7 +11,7 @@ async function viewCompare(){
   if (S.view!=="compare") return;
   const rows=[["GearScore",A._gs,B._gs],["Prosj. ilvl",A._ilvl,B._ilvl],["Achievementi",num(A.achievementpoints),num(B.achievementpoints)],["Honor killovi",num(A.honorablekills),num(B.honorablekills)],
     ["Najbolja arena",Math.max(0,...(A.pvpteams||[]).map(x=>num(x.rating))),Math.max(0,...(B.pvpteams||[]).map(x=>num(x.rating)))]];
-  const nm=(c)=>`<div style="text-align:center;cursor:pointer" onclick="go('char',${J({name:c.name,realm:c.realm})})"><div class="crest" style="margin:0 auto 6px;width:52px;height:52px;background:${CLASS[c.class]||"#8cff2e"}">${esc((c.class||"?")[0])}</div><b style="color:${CLASS[c.class]||"#fff"}">${esc(c.name)}</b><div class="sm mut">${esc(c.class)}</div></div>`;
+  const nm=(c)=>`<div style="text-align:center;cursor:pointer" onclick="go('char',${J({name:c.name,realm:c.realm})})"><div style="display:flex;justify-content:center;margin-bottom:18px">${avatarHtml(c,56,true)}</div><b class="cz" style="color:${CLASS[c.class]||"#fff"};font-size:17px">${esc(c.name)}</b><div class="sm mut">${esc(c.class)}</div></div>`;
   app.innerHTML = head("Poredi","") + `<div class="card"><div class="cmp">${nm(A)}${nm(B)}</div>
    <div style="margin-top:12px">${rows.map(([l,x,y])=>`<div class="vs"><div class="l ${x>y?"win":""}">${fmt(x)}</div><div class="m">${l}</div><div class="${y>x?"win":""}">${fmt(y)}</div></div>`).join("")}</div>
    <button class="btn ghost sm" style="margin-top:12px;width:100%" onclick="S.cmp=[null,null];LS.set('cmp',S.cmp);render()">Očisti</button></div>`;

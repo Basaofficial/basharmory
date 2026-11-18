@@ -3,7 +3,7 @@
 function charRow(c){
   const col = CLASS[c.class]||"#8cff2e";
   return `<div class="it" onclick="go('char',${J({name:c.name,realm:c.realm})})">
-    <span class="dot ${c.online?"on":""}"></span>
+    ${avatarHtml(c,38)}
     <div style="flex:1"><div style="color:${col};font-weight:700">${esc(c.name)}</div>
     <div class="sm mut">${c.level?esc(c.level)+" · ":""}${esc(c.race||"")} ${esc(c.class||"")} · ${esc(c.realm)}</div></div>
     ${c.gs?`<b style="color:${gsColor(c.gs)}">${c.gs}</b>`:""}</div>`;
@@ -65,16 +65,20 @@ async function loadChar(name, realm){
 async function viewChar(p){
   const app=$("#app");
   app.innerHTML = head(esc(p.name), esc(p.realm), true) + `<div class="spin"></div><div class="empty sm">Učitavam lik i gear…</div>`;
+  showPanelLoading(p);
   let ch; try { ch = await loadChar(p.name, p.realm); } catch(e){
+    hideCharPanel();
     app.innerHTML = head(esc(p.name), esc(p.realm), true) + `<div class="card err">${esc(e.message)}</div>`; return; }
   if (S.view!=="char" || S.params!==p) return;
   S.cur = ch; rememberRecent(ch); showCharPanel(ch);
   const col = CLASS[ch.class]||"#8cff2e";
-  const tab = p.tab || "gear";
+  const panelOn = panelActive(p);
+  const TABS = (panelOn?[]:[["gear","Gear"]]).concat([["raid","Raid check"],["talents","Talenti"],["prof","Profesije"],["pvp","PvP"]]);
+  const tab = TABS.some(t=>t[0]===p.tab) ? p.tab : TABS[0][0];
   app.innerHTML = head(esc(ch.name), `${esc(ch.realm)}${p.realm==="DEMO"?' · <span class="badge">DEMO</span>':""}`, true) + `
   <div class="card">
     <div class="hero">
-      <div class="crest" style="background:${col};box-shadow:0 0 24px ${col}66">${esc((ch.class||"?")[0])}</div>
+      ${avatarHtml(ch,72,true)}
       <div style="flex:1;min-width:0">
         <h2 style="color:${col}">${esc(ch.name)}</h2>
         <div class="mut sm">${esc(ch.level)} ${esc(ch.race)} ${esc(ch.class)} · ${esc(ch.faction||"")}</div>
@@ -92,15 +96,14 @@ async function viewChar(p){
     </div>
     <div class="row" style="margin-top:10px">
       <button class="btn ghost sm" style="flex:1" onclick="addCmp()">⚔ Dodaj u poređenje</button>
-      <a class="btn ghost sm" style="flex:1;text-align:center;text-decoration:none" href="${ARMORY}/character/${encodeURIComponent(ch.name)}/${encodeURIComponent(ch.realm)}/summary" target="_blank">Warmane ↗</a>
+      <button class="btn ghost sm" style="flex:1" onclick="open3D()">Warmane 3D ↗</button>
     </div>
     <button class="btn ghost sm" style="width:100%;margin-top:8px;opacity:.7" onclick="showRaw()">🛠 Sirovi podaci (za debug)</button>
   </div>
-  ${panelToggleBtn()}<div class="tabs">${[["gear","Gear"],["raid","Raid check"],["model","3D lik"],["talents","Talenti"],["prof","Profesije"],["pvp","PvP"]].map(([k,l])=>`<button class="tab ${k===tab?"on":""}" onclick="S.params.tab='${k}';viewChar(S.params)">${l}</button>`).join("")}</div>
+  ${panelToggleBtn()}<div class="tabs">${TABS.map(([k,l])=>`<button class="tab ${k===tab?"on":""}" onclick="S.params.tab='${k}';viewChar(S.params)">${l}</button>`).join("")}</div>
   <div id="tabc"></div>`;
   const t=$("#tabc");
   if (tab==="gear") t.innerHTML = tabGear(ch);
-  else if (tab==="model") t.innerHTML = tabModel(ch);
   else if (tab==="raid") tabRaid(ch, t);
   else if (tab==="talents") tabTalentTrees(ch, t);
   else if (tab==="prof") t.innerHTML = tabProf(ch);
@@ -110,8 +113,6 @@ function icoHtml(i, label, cls="ico"){
   const q = i?i.quality:0, u = i?iconUrl(i.icon):"";
   return `<div class="${cls} b${q}" style="${u?`background-image:url('${u}')`:""}">${u?"":esc(label||"")}</div>`;
 }
-S.look = LS.get("look", true);
-function lookToggle(){ return `<div class="chips" style="margin-bottom:10px"><button class="chip ${S.look?"on":""}" onclick="S.look=true;LS.set('look',true);viewChar(S.params)">👁 Kako izgleda u igri</button><button class="chip ${!S.look?"on":""}" onclick="S.look=false;LS.set('look',false);viewChar(S.params)">Pravi itemi</button></div>`; }
 const tmCount = ch => (ch._eq||[]).filter(e=>e._t).length;
 function auditStat(ch){
   const a=ch._audit;
@@ -128,9 +129,8 @@ function auditBadges(ch,e){
 }
 function tabGear(ch){
   const eq=ch._eq||[]; if(!eq.length) return `<div class="card empty">Nema podataka o opremi.</div>`;
-  return `${tmCount(ch)?lookToggle():""}<div class="card">${eq.map((e,k)=>{ const i=e._i; const q=i?i.quality:1; const t=e._t;
-    const shown = (S.look && t) ? t : i;
-    return `<div class="item" onclick="showTip(${k})"><div style="position:relative">${icoHtml(shown, slotName(i&&i.slot).slice(0,4))}${t&&S.look?`<span class="tm">T</span>`:""}</div>
+  return `<div class="card">${eq.map((e,k)=>{ const i=e._i; const q=i?i.quality:1; const t=e._t;
+    return `<div class="item" onclick="showTip(${k})"><div style="position:relative">${icoHtml(i, slotName(i&&i.slot).slice(0,4))}${t&&t.icon?`<span class="tmm" style="background-image:url('${iconUrl(t.icon)}')"></span>`:""}</div>
       <div style="flex:1;min-width:0"><div class="nm q${q}">${esc((i&&i.name)||e.name||("Item "+itemIdOf(e)))}</div>
       <div class="sm mut">${slotName(i&&i.slot)}${i&&i.ilvl?" · ilvl "+i.ilvl:""}</div>
       ${t?`<div class="sm" style="color:#c070ff">👁 izgleda kao: <span class="q${t.quality}">${esc(t.name)}</span></div>`:""}
@@ -140,13 +140,17 @@ function tabGear(ch){
 const SLOT_NAMES={1:"Glava",2:"Vrat",3:"Ramena",4:"Košulja",5:"Prsa",20:"Prsa",6:"Pojas",7:"Noge",8:"Stopala",9:"Zglobovi",10:"Ruke",11:"Prsten",12:"Trinket",13:"Jednoručno",21:"Glavna ruka",22:"Druga ruka",23:"Druga ruka",14:"Štit",15:"Daljinsko",25:"Bacanje",26:"Daljinsko",28:"Relic",16:"Plašt",17:"Dvoručno",19:"Tabard"};
 const slotName = s => SLOT_NAMES[s]||"Item";
 function showTip(k){
-  const e=S.cur._eq[k]; const i=e&&e._i; closeTip();
+  const ch=S.cur; const e=ch&&ch._eq[k]; if(!e) return; const i=e._i; closeTip();
   const d=document.createElement("div"); d.className="tip";
-  d.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="q${i?i.quality:1}">${esc((i&&i.name)||e.name||"")}</b><button class="btn sm" onclick="closeTip()">✕</button></div>
+  const a=ch._audit&&ch._audit.known;
+  d.innerHTML = `<div class="tiphead">${icoHtml(i,"")}<div style="flex:1;min-width:0"><b class="q${i?i.quality:1}" style="font-size:16px">${esc((i&&i.name)||e.name||"")}</b>
+      <div class="sm mut">${slotName(i&&i.slot)}${i&&i.ilvl?" · ilvl "+i.ilvl:""}${e._gs?" · GS "+e._gs:""}</div>${a?auditBadges(ch,e):""}</div>
+      <button class="btn sm" onclick="closeTip()">✕</button></div>
+   ${e._t?`<div class="tipmog">${icoHtml(e._t,"")}<div><div class="sm" style="color:#c070ff;font-weight:700">👁 TRANSMOG · izgleda kao</div><b class="q${e._t.quality}">${esc(e._t.name)}</b>${e._manual?' <span class="sm mut">(ručno)</span>':""}</div></div>`:""}
    ${i&&i.tooltip?`<div>${sanitizeTip(i.tooltip)}</div>`:`<div class="mut">Tooltip nije dostupan.</div>`}
    <div style="margin-top:8px"><a href="https://www.wowhead.com/wotlk/item=${itemIdOf(e)}" target="_blank">Otvori na Wowheadu ↗</a></div>
-   <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b style="color:#c070ff">👁 Transmog</b>
-     <div class="sm mut" style="margin:4px 0 6px">${e._t?`Sada izgleda kao: <span class="q${e._t.quality}">${esc(e._t.name)}</span>${e._manual?" (ručno)":""}`:"Nema transmoga."} Upiši Wowhead link ili ID itema kako izgleda u igri.</div>
+   <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b style="color:#c070ff">👁 Promijeni transmog</b>
+     <div class="sm mut" style="margin:4px 0 6px">Upiši Wowhead link ili ID itema kako izgleda u igri.</div>
      <div class="row"><input id="tmin" placeholder="npr. wowhead.com/wotlk/item=34322" style="flex:1"><button class="btn sm" onclick="setTmog(${k})">Postavi</button></div>
      ${e._tm||e._manual?`<button class="btn ghost sm" style="margin-top:6px;width:100%" onclick="setTmog(${k},true)">${e._manual?"Vrati na Warmane":"Ukloni transmog"}</button>`:""}</div>`;
   document.body.appendChild(d);
