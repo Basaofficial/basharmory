@@ -24,6 +24,7 @@ public class UpdateReceiver extends BroadcastReceiver {
             handleStatus(c, i);
         } else if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(a) || Intent.ACTION_BOOT_COMPLETED.equals(a)) {
             UpdateJob.schedule(c);
+            WatchJob.schedule(c);
             if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) {
                 Updater.notify(c, "✅ #Bash Armory ažuriran", "Nova verzija " + Updater.currentName(c) + " je instalirana.", Updater.openApp(c));
             }

@@ -44,6 +44,8 @@ public class MainActivity extends Activity {
     private static final String UA_MOBILE = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
 
     private WebView web;
+    private WebView panelWeb;
+    private String panelKey = null;
     private LinearLayout overlay;
     private WebView overlayWeb;
     private TextView overlayTitle;
@@ -77,10 +79,30 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.BLACK);
         setContentView(root);
 
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        root.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Warmane-style character panel (3D model + gear) shown above the app on character pages
+        panelWeb = new WebView(this);
+        panelWeb.setBackgroundColor(Color.BLACK);
+        panelWeb.setVisibility(View.GONE);
+        WebSettings ps = panelWeb.getSettings();
+        ps.setJavaScriptEnabled(true);
+        ps.setDomStorageEnabled(true);
+        ps.setMediaPlaybackRequiresUserGesture(false);
+        ps.setUserAgentString(UA_MOBILE);
+        panelWeb.addJavascriptInterface(new PanelBridge(), "BashPanel");
+        panelWeb.setWebChromeClient(new WebChromeClient());
+        panelWeb.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) { return true; }
+        });
+        content.addView(panelWeb, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
+
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        content.addView(web, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -105,6 +127,7 @@ public class MainActivity extends Activity {
         CookieManager.getInstance().setAcceptCookie(true);
         web.loadUrl("file:///android_asset/index.html");
         UpdateJob.schedule(this);
+        WatchJob.schedule(this);
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 7);
         }
@@ -248,6 +271,62 @@ public class MainActivity extends Activity {
         overlayWeb.loadUrl("about:blank");
     }
 
+    private String modelHtml(String json) throws Exception {
+        InputStream in = getAssets().open("model.html");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192]; int n;
+        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        in.close();
+        return out.toString("UTF-8").replace("/*__DATA__*/null", json);
+    }
+
+    private String lastPanelJson = null;
+
+    void showPanel(String json, String key) {
+        try {
+            int h = (int) (getResources().getDisplayMetrics().heightPixels * 0.50);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) panelWeb.getLayoutParams();
+            if (lp.height != h) { lp.height = h; panelWeb.setLayoutParams(lp); }
+            panelWeb.setVisibility(View.VISIBLE);
+            if (key != null && key.equals(panelKey)) return;
+            panelKey = key;
+            lastPanelJson = json;
+            panelWeb.loadDataWithBaseURL("https://www.wowhead.com/", modelHtml(json), "text/html", "UTF-8", null);
+        } catch (Exception ignored) {}
+    }
+
+    void hidePanel() {
+        if (panelWeb.getVisibility() == View.GONE) return;
+        panelWeb.setVisibility(View.GONE);
+        panelWeb.loadUrl("about:blank");
+        panelKey = null;
+    }
+
+    public class PanelBridge {
+        @JavascriptInterface
+        public void tip(final int k) { js("window.showTip && window.showTip(" + k + ")"); }
+
+        @JavascriptInterface
+        public void full() {
+            final String j = lastPanelJson;
+            if (j == null) return;
+            runOnUiThread(() -> {
+                try {
+                    overlayModelMode = false;
+                    overlayTitle.setText("3D lik");
+                    overlayWeb.getSettings().setUserAgentString(UA_MOBILE);
+                    overlayWeb.loadDataWithBaseURL("https://www.wowhead.com/", modelHtml(j.replace("\"panel\":true", "\"panel\":false")), "text/html", "UTF-8", null);
+                    overlay.setVisibility(View.VISIBLE);
+                } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public void collapse() {
+            runOnUiThread(() -> { hidePanel(); js("window.onPanelCollapsed && window.onPanelCollapsed()"); });
+        }
+    }
+
     public class OverlayBridge {
         @JavascriptInterface
         public void found(final boolean ok) {
@@ -264,6 +343,15 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void post(final String id, final String url, final String body) { request(id, url, body); }
+
+        @JavascriptInterface
+        public void setWatch(final String json) { WatchJob.setWatch(MainActivity.this, json); }
+
+        @JavascriptInterface
+        public void showPanel(final String json, final String key) { runOnUiThread(() -> MainActivity.this.showPanel(json, key)); }
+
+        @JavascriptInterface
+        public void hidePanel() { runOnUiThread(() -> MainActivity.this.hidePanel()); }
 
         @JavascriptInterface
         public String updInfo() {
@@ -319,12 +407,7 @@ public class MainActivity extends Activity {
         public void openModel(final String json, final String title) {
             runOnUiThread(() -> {
                 try {
-                    InputStream in = getAssets().open("model.html");
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    byte[] buf = new byte[8192]; int n;
-                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-                    in.close();
-                    String html = out.toString("UTF-8").replace("/*__DATA__*/null", json);
+                    String html = modelHtml(json);
                     overlayModelMode = false;
                     overlayTitle.setText(title);
                     overlayWeb.getSettings().setUserAgentString(UA_MOBILE);

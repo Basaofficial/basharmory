@@ -319,12 +319,14 @@ public class Updater {
         return PendingIntent.getActivity(c, 77, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
-    static void notify(Context c, String title, String text, PendingIntent tap) {
+    static void notify(Context c, String title, String text, PendingIntent tap) { notify(c, title, text, tap, NOTIF); }
+
+    static void notify(Context c, String title, String text, PendingIntent tap, int id) {
         try {
             NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
             Notification.Builder b;
             if (Build.VERSION.SDK_INT >= 26) {
-                nm.createNotificationChannel(new NotificationChannel(CH, "Ažuriranja", NotificationManager.IMPORTANCE_DEFAULT));
+                nm.createNotificationChannel(new NotificationChannel(CH, "Ažuriranja i obavijesti", NotificationManager.IMPORTANCE_DEFAULT));
                 b = new Notification.Builder(c, CH);
             } else {
                 b = new Notification.Builder(c);
@@ -335,7 +337,7 @@ public class Updater {
                     .setAutoCancel(true)
                     .setColor(0xFF8DFF1A)
                     .setContentIntent(tap);
-            nm.notify(NOTIF, b.build());
+            nm.notify(id, b.build());
         } catch (Exception ignored) { }
     }
 }

@@ -4,26 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <style>
-  html,body{margin:0;height:100%;background:#000;color:#e8ffe0;font-family:system-ui,sans-serif;overflow:hidden}
-  #m{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 42%,#173a0c 0%,#050a04 55%,#000 80%)}
+  html,body{margin:0;height:100%;background:#000;color:#e8ffe0;font-family:Inter,system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+  #m{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 46%,#173a0c 0%,#050a04 55%,#000 80%)}
   #m canvas{width:100%!important;height:100%!important}
-  #st{position:fixed;left:12px;right:12px;bottom:14px;font-size:12px;color:#86a17c;text-align:center;pointer-events:none}
+  #st{position:fixed;left:60px;right:60px;bottom:8px;font-size:11px;color:#86a17c;text-align:center;pointer-events:none}
   #st.err{color:#ffb3b3}
-  #bar{position:fixed;top:10px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:5}
-  #bar button{background:#0b140bdd;color:#8cff2e;border:1px solid #8cff2e66;border-radius:10px;padding:8px 12px;font-weight:700}
+  #bar{position:fixed;bottom:34px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:5}
+  #bar button,.tb{background:#0b140bdd;color:#8cff2e;border:1px solid #8cff2e66;border-radius:10px;padding:7px 11px;font-weight:700;font-size:13px}
+  .col{position:fixed;top:8px;bottom:52px;display:flex;flex-direction:column;justify-content:space-between;z-index:4}
+  .col.l{left:6px}.col.r{right:6px}
+  .bot{position:fixed;bottom:22px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:4}
+  .s{position:relative;width:34px;height:34px;border-radius:7px;border:2px solid #222;background:#0a0a0a center/cover;box-shadow:0 2px 8px #000}
+  .q2{border-color:#1eff00}.q3{border-color:#0070dd}.q4{border-color:#a335ee}.q5{border-color:#ff8000}.q6,.q7{border-color:#e6cc80}.q1{border-color:#bbb}
+  .s .t{position:absolute;left:-4px;top:-4px;background:#c070ff;color:#000;font-size:8px;font-weight:900;border-radius:4px;padding:0 2px}
+  .s.miss{box-shadow:0 0 0 2px #ff5a5a88}
+  #info{position:fixed;top:8px;left:50px;right:50px;text-align:center;z-index:4;pointer-events:none;text-shadow:0 2px 6px #000}
+  #info .n{font-size:20px;font-weight:800}
+  #info .d{font-size:11px;color:#b9d4ad}
+  #info .on{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;margin-top:2px}
+  #info .dot{width:8px;height:8px;border-radius:50%;background:#555}
+  #info .dot.y{background:#8cff2e;box-shadow:0 0 8px #8cff2e}
+  #gs{position:fixed;left:0;right:0;bottom:62px;text-align:center;z-index:4;pointer-events:none;font-weight:800;font-size:15px;text-shadow:0 2px 6px #000}
+  #tools{position:fixed;right:48px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:6}
+  #tools .tb{padding:4px 8px;font-size:14px}
 </style>
 </head>
 <body>
 <div id="m"></div>
-<div id="bar">
-  <button onclick="anim('Stand')">Stoji</button>
-  <button onclick="anim('Attack1H')">Napad</button>
-  <button onclick="anim('EmoteDance')">Ples</button>
-  <button onclick="zoom()">Zum</button>
-</div>
+<div id="ui"></div>
 <div id="st">Učitavam 3D model…</div>
 <script>
-/* Rendered with Wowhead's model viewer (wow.zamimg.com). Page runs on the wowhead.com origin
+/* Rendered with Wowhead's model viewer (wow.zamimg.com). The page runs on the wowhead.com origin
    (loadDataWithBaseURL) so the viewer can load its game data without CORS errors. */
 const DATA = /*__DATA__*/null;
 const CONTENT = "https://wow.zamimg.com/modelviewer/live/";
@@ -34,6 +45,30 @@ window.WH = window.WH || {};
 WH.debug = function(){}; WH.defaultAnimation = "Stand";
 WH.WebP = { getImageExtension: () => ".webp" };
 window.CONTENT_PATH = CONTENT;
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+function slotHtml(x){
+  if (!x) return `<div class="s" style="opacity:.35"></div>`;
+  const ic = x.icon ? `background-image:url('https://wow.zamimg.com/images/wow/icons/medium/${x.icon}.jpg')` : "";
+  return `<div class="s q${x.q} ${x.miss ? "miss" : ""}" style="${ic}" onclick="window.BashPanel&&BashPanel.tip(${x.k})">${x.tm ? '<span class="t">T</span>' : ""}</div>`;
+}
+function buildUi(){
+  const ui = document.getElementById("ui");
+  if (DATA.panel) {
+    const d = DATA;
+    ui.innerHTML = `
+      <div class="col l">${(d.left||[]).map(slotHtml).join("")}</div>
+      <div class="col r">${(d.right||[]).map(slotHtml).join("")}</div>
+      <div class="bot">${(d.bottom||[]).map(slotHtml).join("")}</div>
+      <div id="info"><div class="n" style="color:${d.color||"#8cff2e"}">${esc(d.name)}</div>
+        <div class="d">${esc(d.level)} ${esc(d.raceName)} ${esc(d.className)}${d.guild ? " · &lt;" + esc(d.guild) + "&gt;" : ""}</div>
+        <div class="on"><span class="dot ${d.online ? "y" : ""}"></span>${d.online ? "Online" : "Offline"}</div></div>
+      <div id="gs" style="color:${d.gsColor||"#fff"}">${d.gs ? "GS " + d.gs : ""}${d.audit ? ` <span style="color:${d.auditOk?"#8cff2e":"#ff6b6b"};font-size:12px">· ${esc(d.audit)}</span>` : ""}</div>
+      <div id="tools"><button class="tb" onclick="BashPanel.full()">⤢</button><button class="tb" onclick="BashPanel.collapse()">▴</button></div>`;
+  } else {
+    ui.innerHTML = `<div id="bar"><button onclick="anim('Stand')">Stoji</button><button onclick="anim('Attack1H')">Napad</button><button onclick="anim('EmoteDance')">Ples</button></div>`;
+  }
+}
 
 function load(src){ return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("ne mogu učitati " + src)); document.head.appendChild(s); }); }
 
@@ -43,26 +78,29 @@ function viewerSlot(inv, used){
   if (inv === 20) return 20;                 // robe
   if ([13,17,21].includes(inv)) { if (!used[21]) return 21; return 22; }  // weapons
   if ([14,22,23].includes(inv)) return 22;   // off-hand / shield
-  if ([15,25,26,28,2,11,12].includes(inv)) return 0; // ranged, neck, rings, trinkets: not shown
+  if ([15,25,26,28,2,11,12].includes(inv)) return 0; // ranged, neck, rings, trinkets: not drawn
   return inv;                                // head, shoulder, shirt, chest, waist, legs, feet, wrist, hands, tabard
 }
+const dispCache = {};
 async function retailDisplay(itemId){
+  if (dispCache[itemId]) return dispCache[itemId];
   try {
     const r = await fetch("/item=" + itemId + "&xml");
     const x = new DOMParser().parseFromString(await r.text(), "text/xml");
     const ic = x.querySelector("icon"), sl = x.querySelector("inventorySlot");
     const d = ic ? parseInt(ic.getAttribute("displayId"), 10) : 0;
-    return { display: d || 0, inv: sl ? parseInt(sl.getAttribute("id"), 10) : 0 };
+    return (dispCache[itemId] = { display: d || 0, inv: sl ? parseInt(sl.getAttribute("id"), 10) : 0 });
   } catch (e) { return { display: 0, inv: 0 }; }
 }
 let viewer = null;
 async function start(){
   if (!DATA) { say("Nema podataka o liku.", true); return; }
+  buildUi();
   say("Učitavam 3D viewer…");
   if (!window.jQuery) await load("https://code.jquery.com/jquery-3.7.1.min.js");
   await load(CONTENT + "viewer/viewer.min.js");
   if (typeof ZamModelViewer !== "function") throw new Error("viewer nije dostupan");
-  say("Tražim izgled itema…");
+  say("Oblačim lika…");
   const list = await Promise.all(DATA.items.map(async it => {
     const look = it.transmog || it.item;               // transmog = how it looks in game
     let r = await retailDisplay(look);
@@ -73,7 +111,6 @@ async function start(){
   }));
   const used = {}, items = [];
   list.forEach(r => { if (!r.display) return; const s = viewerSlot(r.inv, used); if (!s || used[s]) return; used[s] = 1; items.push([s, r.display]); });
-  say("Crtam lika…");
   const box = document.getElementById("m");
   viewer = new ZamModelViewer({
     type: 2, contentPath: CONTENT, container: jQuery(box),
@@ -81,11 +118,10 @@ async function start(){
     items: items,
     models: { id: DATA.race * 2 - 1 + DATA.gender, type: 16 }
   });
-  setTimeout(() => say(DATA.name + " · " + items.length + " itema · prstom vrti"), 1500);
+  setTimeout(() => say(DATA.panel ? "prstom vrti" : DATA.name + " · " + items.length + " itema · prstom vrti"), 1500);
 }
 function anim(a){ try { viewer && viewer.renderer && viewer.renderer.models[0].setAnimation(a); } catch (e) {} }
-let zl = 0; function zoom(){ try { zl = (zl + 1) % 3; viewer.renderer.distance = [1, 0.6, 1.6][zl] * viewer.renderer.distance; } catch (e) {} }
-start().catch(e => say("3D nije uspio: " + e.message + ". Probaj Warmane 3D.", true));
+start().catch(e => say("3D nije uspio: " + e.message, true));
 </script>
 </body>
 </html>
