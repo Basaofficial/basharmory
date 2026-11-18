@@ -12,30 +12,6 @@
       radial-gradient(ellipse at 50% 120%,#0d1f07 0%,#000 60%)}
   #m canvas{width:100%!important;height:100%!important}
   #floor{position:fixed;left:20%;right:20%;bottom:13%;height:16px;border-radius:50%;background:radial-gradient(closest-side,rgba(140,255,46,.35),transparent);filter:blur(4px);pointer-events:none}
-  /* gear around the model */
-  .col{position:fixed;top:10px;bottom:62px;display:flex;flex-direction:column;justify-content:space-between;z-index:4}
-  .col.l{left:8px}.col.r{right:8px}
-  .bot{position:fixed;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:4}
-  .s{position:relative;width:40px;height:40px;border-radius:8px;border:1.5px solid #2a2a2a;background:#0a0a0a center/cover;box-shadow:0 3px 10px rgba(0,0,0,.8),inset 0 0 0 1px rgba(255,255,255,.06)}
-  .s.e{background:linear-gradient(160deg,#111,#060606);opacity:.55}
-  .q1{border-color:#9d9d9d}.q2{border-color:#1eff00}.q3{border-color:#0070dd}.q4{border-color:#a335ee}.q5{border-color:#ff8000}.q6,.q7{border-color:#e6cc80}
-  .q4{box-shadow:0 0 10px rgba(163,53,238,.35),0 3px 10px rgba(0,0,0,.8)}.q5{box-shadow:0 0 12px rgba(255,128,0,.45),0 3px 10px rgba(0,0,0,.8)}
-  .s .tm{position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;border-radius:5px;border:1.5px solid #c070ff;background:#111 center/cover;box-shadow:0 0 8px rgba(192,112,255,.6)}
-  .s.miss::after{content:"";position:absolute;left:-3px;top:-3px;width:9px;height:9px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 6px #ff4d4d}
-  /* name plate */
-  #info{position:fixed;top:10px;left:58px;right:58px;text-align:center;z-index:4;pointer-events:none;text-shadow:0 2px 8px #000,0 0 2px #000}
-  #info .n{font-family:Cinzel,serif;font-size:22px;font-weight:900;letter-spacing:.5px;line-height:1.1}
-  #info .d{font-size:11px;color:#c9dcbf;margin-top:2px}
-  #info .g{font-size:11px;color:var(--g);margin-top:1px}
-  #info .on{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;margin-top:5px;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid #333;letter-spacing:.5px;text-transform:uppercase}
-  #info .on.y{border-color:rgba(140,255,46,.5);color:var(--g)}
-  #info .dot{width:7px;height:7px;border-radius:50%;background:#666}
-  #info .on.y .dot{background:var(--g);box-shadow:0 0 8px var(--g)}
-  #gs{position:fixed;left:0;right:0;bottom:60px;text-align:center;z-index:4;pointer-events:none;text-shadow:0 2px 8px #000}
-  #gs b{font-family:Cinzel,serif;font-size:17px;font-weight:900}
-  #gs span{font-size:11px;font-weight:700;margin-left:6px}
-  #tools{position:fixed;right:56px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:6}
-  .tb{width:30px;height:30px;border-radius:9px;background:rgba(10,20,10,.75);color:var(--g);border:1px solid rgba(140,255,46,.35);font-size:14px;font-weight:800;display:grid;place-items:center;padding:0}
   #bar{position:fixed;bottom:16px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:5}
   #bar button{background:rgba(10,20,10,.8);color:var(--g);border:1px solid rgba(140,255,46,.4);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px}
   /* loader */
@@ -58,6 +34,7 @@
 <div id="floor"></div>
 <div id="ui"></div>
 <div id="ld"><div class="ring"><i id="ldi"></i></div><div class="t" id="ldn"></div><div class="st" id="lds">Učitavam…</div><div class="pb"><i id="ldp"></i></div></div>
+<script>/*__PANELUI__*/</script>
 <script>
 /* Wowhead model viewer (wow.zamimg.com). The page runs on the wowhead.com origin
    (loadDataWithBaseURL) so the viewer can load its game data without CORS errors. */
@@ -70,7 +47,10 @@ function step(t, pct){ $("lds").textContent = t; if (pct != null) $("ldp").style
 function fail(msg){
   $("ld").classList.remove("out");
   $("lds").innerHTML = `<div class="err">3D se nije učitao (${esc(msg)}).${firstErr && firstErr!==msg ? `<br><span style="opacity:.7">${esc(firstErr).slice(0,160)}</span>` : ""}</div>`;
-  if (window.BashPanel && BashPanel.warmane) $("lds").insertAdjacentHTML("afterend", `<button class="wb" onclick="BashPanel.warmane()">Otvori Warmane 3D</button>`);
+  if (DATA && DATA.panel && window.BashPanel && BashPanel.warmaneEmbed) {
+    $("lds").insertAdjacentHTML("beforeend", `<div class="st" style="margin-top:6px">Prebacujem na Warmane 3D…</div>`);
+    setTimeout(() => BashPanel.warmaneEmbed(), 2500);
+  } else if (window.BashPanel && BashPanel.warmane) $("lds").insertAdjacentHTML("afterend", `<button class="wb" onclick="BashPanel.warmane()">Otvori Warmane 3D</button>`);
 }
 let firstErr = "";
 window.onerror = (m) => { if (!firstErr) firstErr = String(m); };
@@ -88,10 +68,6 @@ window.WH = {
     INVENTORY_TYPE_RANGED_RIGHT:26, INVENTORY_TYPE_QUIVER:27, INVENTORY_TYPE_RELIC:28, INVENTORY_TYPE_PROFESSION_TOOL:29, INVENTORY_TYPE_PROFESSION_ACCESSORY:30 } }
 };
 
-function slotHtml(x){
-  if (!x) return `<div class="s e"></div>`;
-  return `<div class="s q${x.q} ${x.miss ? "miss" : ""}" style="background-image:url('${ICON(x.icon)}')" onclick="window.BashPanel&&BashPanel.tip(${x.k})">${x.tmIcon ? `<span class="tm" style="background-image:url('${ICON(x.tmIcon)}')"></span>` : ""}</div>`;
-}
 function buildUi(){
   const d = DATA, ui = $("ui");
   $("ldn").textContent = d.name || "";
@@ -99,22 +75,27 @@ function buildUi(){
   if (d.classIcon) $("ldi").style.backgroundImage = `url('${ICON(d.classIcon)}')`;
   if (d.loading) return;
   if (d.panel) {
-    ui.innerHTML = `
-      <div class="col l">${(d.left||[]).map(slotHtml).join("")}</div>
-      <div class="col r">${(d.right||[]).map(slotHtml).join("")}</div>
-      <div class="bot">${(d.bottom||[]).map(slotHtml).join("")}</div>
-      <div id="info"><div class="n" style="color:${d.color||"#8cff2e"}">${esc(d.name)}</div>
-        <div class="d">${esc(d.level)} ${esc(d.raceName)} ${esc(d.className)}</div>
-        ${d.guild ? `<div class="g">&lt;${esc(d.guild)}&gt;</div>` : ""}
-        <div class="on ${d.online ? "y" : ""}"><span class="dot"></span>${d.online ? "Online" : "Offline"}</div></div>
-      <div id="gs">${d.gs ? `<b style="color:${d.gsColor}">${d.gs}</b>` : ""}${d.audit ? `<span style="color:${d.auditOk?"#8cff2e":"#ff6b6b"}">${esc(d.audit)}</span>` : ""}</div>
-      <div id="tools"><button class="tb" onclick="BashPanel.full()">⤢</button><button class="tb" onclick="BashPanel.collapse()">▴</button></div>`;
+    window.buildPanelUi(d);
   } else {
     ui.innerHTML = `<div id="bar"><button onclick="anim('Stand')">Stoji</button><button onclick="anim('Attack1H')">Napad</button><button onclick="anim('EmoteDance')">Ples</button></div>`;
   }
 }
 
-function load(src){ return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("nema veze sa Wowheadom")); document.head.appendChild(s); }); }
+/* Load scripts through the phone (BashNet) and run them inline: then a crash shows the real message instead of "Script error." */
+function load(src){
+  if (window.BashNet && BashNet.fetchText) {
+    const code = BashNet.fetchText(src);
+    if (!code) return Promise.reject(new Error("nema veze sa Wowheadom"));
+    return new Promise((res, rej) => {
+      const prev = window.onerror; let err = null;
+      window.onerror = (m, f, l, c, e) => { err = e || new Error(m); return true; };
+      const s = document.createElement("script"); s.textContent = code + "\n//# sourceURL=" + src; document.head.appendChild(s);
+      window.onerror = prev;
+      if (err) { firstErr = (err && err.message) || String(err); rej(new Error("Wowhead viewer: " + firstErr)); } else res();
+    });
+  }
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("nema veze sa Wowheadom")); document.head.appendChild(s); });
+}
 
 /* inventory type -> viewer slot (viewer uses WH.Wow.Item inventory types; weapons go to 21/22) */
 function viewerSlot(inv, used){

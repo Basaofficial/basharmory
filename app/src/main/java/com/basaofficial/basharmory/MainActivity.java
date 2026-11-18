@@ -45,7 +45,9 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private WebView panelWeb;
+    private FrameLayout panelBox;
     private String panelKey = null;
+    private boolean panelEmbed = false;
     private LinearLayout overlay;
     private WebView overlayWeb;
     private TextView overlayTitle;
@@ -62,11 +64,11 @@ public class MainActivity extends Activity {
         "var c=cs[0],box=c.parentElement||c;" +
         "var st=document.createElement('style');st.textContent='html,body{background:#000!important;overflow:hidden!important}';document.head.appendChild(st);" +
         "var p=box;while(p&&p!==document.body){p.style.transform='none';p.style.filter='none';p=p.parentElement;}" +
-        "box.style.cssText+=';position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;z-index:2147483647!important;background:radial-gradient(ellipse at 50% 40%,#16300c,#000 70%)!important;margin:0!important;';" +
+        "box.style.cssText+=';position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;z-index:2147483000!important;background:radial-gradient(ellipse at 50% 40%,#16300c,#000 70%)!important;margin:0!important;';" +
         "c.style.width='100%';c.style.height='100%';" +
         "setTimeout(function(){window.dispatchEvent(new Event('resize'));},300);" +
-        "if(window.BashOverlay)BashOverlay.found(true);}" +
-        "if(n>60){clearInterval(t);if(window.BashOverlay)BashOverlay.found(false);}},1000);})();";
+        "var B=window.BashOverlay||window.BashPanel;if(B)B.found(true);}" +
+        "if(n>60){clearInterval(t);var B2=window.BashOverlay||window.BashPanel;if(B2)B2.found(false);}},1000);})();";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,10 +96,32 @@ public class MainActivity extends Activity {
         ps.setUserAgentString(UA_MOBILE);
         panelWeb.addJavascriptInterface(new PanelBridge(), "BashPanel");
         panelWeb.setWebChromeClient(new WebChromeClient());
+        panelWeb.addJavascriptInterface(new NetBridge(), "BashNet");
         panelWeb.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) { return true; }
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                String host = req.getUrl().getHost();
+                return !(panelEmbed && host != null && host.endsWith("warmane.com"));
+            }
+            @Override public void onPageFinished(WebView view, String url) {
+                if (panelEmbed && url != null && url.contains("warmane.com")) {
+                    view.evaluateJavascript(ISOLATE_MODEL_JS, null);
+                    String ui = asset("panel-ui.js");
+                    if (lastPanelJson != null) view.evaluateJavascript(ui + ";setTimeout(function(){window.buildPanelUi(" + lastPanelJson + ");},400);", null);
+                }
+            }
         });
-        content.addView(panelWeb, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
+        panelBox = new FrameLayout(this);
+        panelBox.setBackgroundColor(Color.BLACK);
+        panelBox.setVisibility(View.GONE);
+        TextView pl = new TextView(this);
+        pl.setText("Učitavam Warmane 3D…");
+        pl.setTextColor(GREEN);
+        pl.setTextSize(14);
+        pl.setGravity(Gravity.CENTER);
+        panelBox.addView(pl, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        panelWeb.setVisibility(View.VISIBLE);
+        panelBox.addView(panelWeb, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        content.addView(panelBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
 
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
@@ -234,6 +258,7 @@ public class MainActivity extends Activity {
         os.setMediaPlaybackRequiresUserGesture(false);
         CookieManager.getInstance().setAcceptThirdPartyCookies(overlayWeb, true);
         overlayWeb.addJavascriptInterface(new OverlayBridge(), "BashOverlay");
+        overlayWeb.addJavascriptInterface(new NetBridge(), "BashNet");
         overlayWeb.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView view, int p) {
                 overlayProgress.setProgress(p);
@@ -271,13 +296,45 @@ public class MainActivity extends Activity {
         overlayWeb.loadUrl("about:blank");
     }
 
+    private String asset(String name) {
+        try {
+            InputStream in = getAssets().open(name);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192]; int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            in.close();
+            return out.toString("UTF-8");
+        } catch (Exception e) { return ""; }
+    }
+
     private String modelHtml(String json) throws Exception {
-        InputStream in = getAssets().open("model.html");
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] buf = new byte[8192]; int n;
-        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-        in.close();
-        return out.toString("UTF-8").replace("/*__DATA__*/null", json);
+        return asset("model.html").replace("/*__PANELUI__*/", asset("panel-ui.js")).replace("/*__DATA__*/null", json);
+    }
+
+    /** Synchronous GET for page scripts (runs on the JS bridge thread, not the UI thread). */
+    public class NetBridge {
+        @JavascriptInterface
+        public String fetchText(String url) {
+            HttpURLConnection c = null;
+            try {
+                c = (HttpURLConnection) new URL(url).openConnection();
+                c.setConnectTimeout(15000);
+                c.setReadTimeout(30000);
+                c.setRequestProperty("User-Agent", UA_MOBILE);
+                c.setRequestProperty("Referer", "https://www.wowhead.com/");
+                if (c.getResponseCode() != 200) return "";
+                InputStream in = c.getInputStream();
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buf = new byte[32768]; int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                in.close();
+                return out.toString("UTF-8");
+            } catch (Exception e) {
+                return "";
+            } finally {
+                if (c != null) c.disconnect();
+            }
+        }
     }
 
     private String lastPanelJson = null;
@@ -285,19 +342,23 @@ public class MainActivity extends Activity {
     void showPanel(String json, String key) {
         try {
             int h = (int) (getResources().getDisplayMetrics().heightPixels * 0.56);
-            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) panelWeb.getLayoutParams();
-            if (lp.height != h) { lp.height = h; panelWeb.setLayoutParams(lp); }
-            panelWeb.setVisibility(View.VISIBLE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) panelBox.getLayoutParams();
+            if (lp.height != h) { lp.height = h; panelBox.setLayoutParams(lp); }
+            panelBox.setVisibility(View.VISIBLE);
             if (key != null && key.equals(panelKey)) return;
             panelKey = key;
             lastPanelJson = json;
+            panelEmbed = false;
+            panelWeb.setAlpha(1f);
+            panelWeb.getSettings().setUserAgentString(UA_MOBILE);
             panelWeb.loadDataWithBaseURL("https://www.wowhead.com/", modelHtml(json), "text/html", "UTF-8", null);
         } catch (Exception ignored) {}
     }
 
     void hidePanel() {
-        if (panelWeb.getVisibility() == View.GONE) return;
-        panelWeb.setVisibility(View.GONE);
+        if (panelBox.getVisibility() == View.GONE) return;
+        panelBox.setVisibility(View.GONE);
+        panelEmbed = false;
         panelWeb.loadUrl("about:blank");
         panelKey = null;
     }
@@ -320,6 +381,27 @@ public class MainActivity extends Activity {
                     overlay.setVisibility(View.VISIBLE);
                 } catch (Exception ignored) {}
             });
+        }
+
+        @JavascriptInterface
+        public void warmaneEmbed() {
+            final String j = lastPanelJson;
+            if (j == null) return;
+            runOnUiThread(() -> {
+                try {
+                    String u = new JSONObject(j).optString("warmaneUrl");
+                    if (u.isEmpty()) return;
+                    panelEmbed = true;
+                    panelWeb.setAlpha(0f);
+                    panelWeb.getSettings().setUserAgentString(null);
+                    panelWeb.loadUrl(u);
+                } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public void found(final boolean ok) {
+            runOnUiThread(() -> panelWeb.animate().alpha(1f).setDuration(400).start());
         }
 
         @JavascriptInterface
