@@ -261,6 +261,8 @@ async function enrich(ch){
   infos.forEach(i=>{ if(i && i.slot===17) twoH++; });
   eq.forEach(e=>{ e._tm = tmogOf(e); });
   if (!eq.some(e=>e._tm) && ch.realm!=="DEMO" && eq.length) { try { await tmogFromPage(ch, eq); } catch(x){} }
+  const man = LS.get("tm_"+(ch.realm||"")+"/"+String(ch.name).toLowerCase(), {});
+  eq.forEach(e=>{ const m=man[itemIdOf(e)]; if (m===-1) e._tm=0; else if (m) e._tm=m; e._manual=m!=null; });
   const tms = await Promise.all(eq.map(e=>e._tm?itemInfo(e._tm).catch(()=>null):null));
   eq.forEach((e,k)=>{ const i=infos[k]; e._i=i; e._t=tms[k]; if(!i) return;
     let g=itemGS(i,hunter); if (twoH>=2 && i.slot===17) g=Math.floor(g/2); // titan's grip
@@ -431,7 +433,11 @@ function showTip(k){
   const d=document.createElement("div"); d.className="tip";
   d.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="q${i?i.quality:1}">${esc((i&&i.name)||e.name||"")}</b><button class="btn sm" onclick="closeTip()">✕</button></div>
    ${i&&i.tooltip?`<div>${sanitizeTip(i.tooltip)}</div>`:`<div class="mut">Tooltip nije dostupan.</div>`}
-   <div style="margin-top:8px"><a href="https://www.wowhead.com/wotlk/item=${itemIdOf(e)}" target="_blank">Otvori na Wowheadu ↗</a></div>`;
+   <div style="margin-top:8px"><a href="https://www.wowhead.com/wotlk/item=${itemIdOf(e)}" target="_blank">Otvori na Wowheadu ↗</a></div>
+   <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b style="color:#c070ff">👁 Transmog</b>
+     <div class="sm mut" style="margin:4px 0 6px">${e._t?`Sada izgleda kao: <span class="q${e._t.quality}">${esc(e._t.name)}</span>${e._manual?" (ručno)":""}`:"Nema transmoga."} Upiši Wowhead link ili ID itema kako izgleda u igri.</div>
+     <div class="row"><input id="tmin" placeholder="npr. wowhead.com/wotlk/item=34322" style="flex:1"><button class="btn sm" onclick="setTmog(${k})">Postavi</button></div>
+     ${e._tm||e._manual?`<button class="btn ghost sm" style="margin-top:6px;width:100%" onclick="setTmog(${k},true)">${e._manual?"Vrati na Warmane":"Ukloni transmog"}</button>`:""}</div>`;
   document.body.appendChild(d);
 }
 function showRaw(){
@@ -443,6 +449,15 @@ function showRaw(){
     <pre style="white-space:pre-wrap;word-break:break-all;font-size:11px;color:#bfffa0">${esc(JSON.stringify((clean.equipment||[]).slice(0,4),null,1))}</pre>
     <div class="sm mut">Napravi screenshot i pošalji.</div>`;
   document.body.appendChild(d);
+}
+async function setTmog(k, clear){
+  const ch=S.cur; const e=ch._eq[k]; const key="tm_"+(ch.realm||"")+"/"+String(ch.name).toLowerCase();
+  const man=LS.get(key,{}); const id=itemIdOf(e);
+  if (clear){ if (e._manual) delete man[id]; else man[id]=-1; }
+  else { const v=($("#tmin").value||"").trim(); const m=v.match(/item[=\/](\d+)/i)||v.match(/^(\d{2,6})$/); if(!m){ toast("Upiši link ili ID"); return; } man[id]=num(m[1]); }
+  LS.set(key,man); closeTip();
+  delete S.cache[S.params.realm+"/"+String(S.params.name).toLowerCase()];
+  toast(clear?"Transmog uklonjen":"Transmog postavljen"); viewChar(S.params);
 }
 function closeTip(){ document.querySelectorAll(".tip").forEach(t=>t.remove()); }
 function sanitizeTip(h){ const d=document.createElement("div"); d.innerHTML=h;
@@ -501,7 +516,7 @@ function openBash3D(){
   const race=RACE_ID[ch.race]; const gender=String(ch.gender||"").toLowerCase().startsWith("f")?1:0;
   if (!race){ toast("Nepoznata rasa"); return; }
   if (!(window.BashNative && window.BashNative.openModel)){ toast("Bash 3D radi u APK-u"); return; }
-  const items=(ch._eq||[]).filter(e=>e._i).map(e=>({item:itemIdOf(e), transmog:num(e.transmog)||0, inv:e._i.slot||0, display:e._i.displayId||0}));
+  const items=(ch._eq||[]).filter(e=>e._i).map(e=>({item:itemIdOf(e), transmog:e._tm||0, inv:e._i.slot||0, display:e._i.displayId||0}));
   window.BashNative.openModel(JSON.stringify({name:ch.name, race, gender, items}), ch.name+" · Bash 3D");
 }
 function openWarmane(page,title){
@@ -970,7 +985,7 @@ const DEMO_ITEMS = {
 };
 const DEMO_CHAR = {name:"Bashdk",realm:"DEMO",online:true,level:"80",faction:"Horde",gender:"Male",race:"Blood Elf",class:"Death Knight",
  honorablekills:"12873",guild:"Bash Squad",achievementpoints:"9420",
- equipment:Object.keys(DEMO_ITEMS).map(id=>({name:DEMO_ITEMS[id].name,item:id,transmog:id==="900001"?"900020":id==="900003"?"900021":""})),
+ equipment:Object.keys(DEMO_ITEMS).filter(id=>num(id)<900020).map(id=>({name:DEMO_ITEMS[id].name,item:id,transmog:id==="900001"?"900020":id==="900003"?"900021":""})),
  talents:[{tree:"Unholy",points:[0,17,54]},{tree:"Frost",points:[3,57,11]}],
  professions:[{name:"Blacksmithing",skill:"450"},{name:"Mining",skill:"450"}],
  pvpteams:[{type:"2v2",name:"Bash Bros",rating:"2140",rank:"312"},{type:"3v3",name:"Monster Green",rating:"1890",rank:""}]};
