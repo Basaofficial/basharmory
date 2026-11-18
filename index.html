@@ -179,6 +179,23 @@ async function apiGuild(name, realm){
 
 /* ---------- Item data (Wowhead WotLK): ilvl, quality, slot, icon, displayId ---------- */
 const SLOT_BY_NAME = {"head":1,"neck":2,"shoulder":3,"shirt":4,"chest":5,"waist":6,"legs":7,"feet":8,"wrist":9,"hands":10,"finger":11,"trinket":12,"one-hand":13,"shield":14,"ranged":15,"back":16,"two-hand":17,"tabard":19,"robe":20,"main hand":21,"off hand":22,"held in off-hand":23,"thrown":25,"relic":28};
+function tmogOf(e){
+  for (const k of ["transmog","transmogid","transmog_id","transmogrify","transmogrification","tmog","appearance","fakeentry","fake_entry","display"]){
+    const v=e[k]; if (v==null || v==="" || v===0 || v==="0") continue;
+    if (typeof v==="object"){ const n=num(v.item||v.entry||v.id||v.itemid); if(n && n!==itemIdOf(e)) return n; continue; }
+    const n=num(v); if (n && n!==itemIdOf(e)) return n;
+  }
+  return 0;
+}
+async function tmogFromPage(ch, eq){ // Warmane page item links carry "item=ID ... transmog=ID"
+  const html=await getText(`${ARMORY}/character/${encodeURIComponent(ch.name)}/${encodeURIComponent(ch.realm)}/summary`);
+  const map={}; const re=/item=(\d+)[^"'<>]*?(?:transmog|tmog|fake)=(\d+)/gi; let m;
+  while ((m=re.exec(html))) if (m[2]!=="0" && m[1]!==m[2]) map[m[1]]=num(m[2]);
+  const re2=/(?:transmog|tmog|fake)=(\d+)[^"'<>]*?item=(\d+)/gi;
+  while ((m=re2.exec(html))) if (m[1]!=="0" && m[1]!==m[2]) map[m[2]]=map[m[2]]||num(m[1]);
+  eq.forEach(e=>{ const t=map[itemIdOf(e)]; if (t) e._tm=t; });
+  S.tmDebug = Object.keys(map).length+" transmog linkova na stranici";
+}
 function itemIdOf(e){ return num(e && (e.item || e.itemid || e.id || e.entry)); }
 async function itemInfo(id){
   if (!id) return null;
@@ -234,7 +251,9 @@ async function enrich(ch){
   const hunter = ch.class==="Hunter";
   let gs=0, ilSum=0, ilN=0, twoH=0;
   infos.forEach(i=>{ if(i && i.slot===17) twoH++; });
-  const tms = await Promise.all(eq.map(e=>num(e.transmog)?itemInfo(num(e.transmog)).catch(()=>null):null));
+  eq.forEach(e=>{ e._tm = tmogOf(e); });
+  if (!eq.some(e=>e._tm) && ch.realm!=="DEMO" && eq.length) { try { await tmogFromPage(ch, eq); } catch(x){} }
+  const tms = await Promise.all(eq.map(e=>e._tm?itemInfo(e._tm).catch(()=>null):null));
   eq.forEach((e,k)=>{ const i=infos[k]; e._i=i; e._t=tms[k]; if(!i) return;
     let g=itemGS(i,hunter); if (twoH>=2 && i.slot===17) g=Math.floor(g/2); // titan's grip
     e._gs=g; gs+=g; if(i.ilvl && ![4,19].includes(i.slot)){ilSum+=i.ilvl; ilN++;} });
@@ -367,6 +386,7 @@ async function viewChar(p){
       <button class="btn ghost sm" style="flex:1" onclick="addCmp()">⚔ Dodaj u poređenje</button>
       <a class="btn ghost sm" style="flex:1;text-align:center;text-decoration:none" href="${ARMORY}/character/${encodeURIComponent(ch.name)}/${encodeURIComponent(ch.realm)}/summary" target="_blank">Warmane ↗</a>
     </div>
+    <button class="btn ghost sm" style="width:100%;margin-top:8px;opacity:.7" onclick="showRaw()">🛠 Sirovi podaci (za debug)</button>
   </div>
   <div class="tabs">${[["gear","Gear"],["raid","Raid check"],["model","3D lik"],["talents","Talenti"],["prof","Profesije"],["pvp","PvP"]].map(([k,l])=>`<button class="tab ${k===tab?"on":""}" onclick="S.params.tab='${k}';viewChar(S.params)">${l}</button>`).join("")}</div>
   <div id="tabc"></div>`;
@@ -403,6 +423,16 @@ function showTip(k){
   d.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="q${i?i.quality:1}">${esc((i&&i.name)||e.name||"")}</b><button class="btn sm" onclick="closeTip()">✕</button></div>
    ${i&&i.tooltip?`<div>${sanitizeTip(i.tooltip)}</div>`:`<div class="mut">Tooltip nije dostupan.</div>`}
    <div style="margin-top:8px"><a href="https://www.wowhead.com/wotlk/item=${itemIdOf(e)}" target="_blank">Otvori na Wowheadu ↗</a></div>`;
+  document.body.appendChild(d);
+}
+function showRaw(){
+  const ch=S.cur; if(!ch) return; closeTip();
+  const clean=JSON.parse(JSON.stringify(ch,(k,v)=>k.startsWith("_")?undefined:v));
+  const d=document.createElement("div"); d.className="tip";
+  d.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><b>Sirovi podaci</b><button class="btn sm" onclick="closeTip()">✕</button></div>
+    <div class="sm mut">Transmog nađen: ${(ch._eq||[]).filter(e=>e._t).length} · ${esc(S.tmDebug||"API")}</div>
+    <pre style="white-space:pre-wrap;word-break:break-all;font-size:11px;color:#bfffa0">${esc(JSON.stringify((clean.equipment||[]).slice(0,4),null,1))}</pre>
+    <div class="sm mut">Napravi screenshot i pošalji.</div>`;
   document.body.appendChild(d);
 }
 function closeTip(){ document.querySelectorAll(".tip").forEach(t=>t.remove()); }
