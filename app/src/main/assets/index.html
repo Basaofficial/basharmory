@@ -88,6 +88,22 @@ nav button.on{color:var(--g)}
 .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #ffffff08;font-size:14px}
 .vs .l{text-align:right}.vs .m{color:var(--mut);font-size:11px;text-align:center;min-width:80px}
 .win{color:var(--g);font-weight:800}
+.ttabs{display:flex;gap:6px;margin-bottom:10px}
+.ttabs button{flex:1;padding:9px 4px;border-radius:12px;border:1px solid var(--line);background:#060906;color:var(--mut);font-weight:700;font-size:13px}
+.ttabs button.on{border-color:var(--g);color:var(--g);background:var(--gdim)}
+.tree{position:relative;border-radius:16px;border:1px solid var(--line);padding:12px 8px;background:#000 center/cover;overflow:hidden}
+.tree::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#000a,#000d)}
+.tgrid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:58px;gap:0;justify-items:center;align-items:center}
+.tal{position:relative;width:44px;height:44px;border-radius:9px;border:2px solid #333;background:#111 center/cover;filter:grayscale(1) brightness(.45);z-index:2}
+.tal.p{filter:none;border-color:#40c040;box-shadow:0 0 10px #40c04066}
+.tal.m{filter:none;border-color:#ffd100;box-shadow:0 0 10px #ffd10066}
+.tal .rk{position:absolute;right:-7px;bottom:-7px;background:#000;border:1px solid #444;border-radius:7px;font-size:10px;font-weight:800;padding:1px 4px;color:#9a9a9a}
+.tal.p .rk{color:#40ff40;border-color:#40c040}.tal.m .rk{color:#ffd100;border-color:#ffd100}
+.arrow{position:absolute;width:4px;background:#555;z-index:1;border-radius:2px}
+.arrow.on{background:#ffd100}
+.thead{position:relative;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.tm{position:absolute;left:-4px;top:-4px;background:#c070ff;color:#000;font-size:9px;font-weight:900;border-radius:5px;padding:0 3px;z-index:3}
+.ico,.doll .slot{position:relative}
 </style>
 </head>
 <body>
@@ -99,6 +115,7 @@ nav button.on{color:var(--g)}
   <button data-go="compare"><span class="i">⚔</span>Poredi</button>
   <button data-go="settings"><span class="i">⚙</span>Postavke</button>
 </nav>
+<script src="talents.js"></script>
 <script>
 /* ===================== #Bash Armory ===================== */
 const REALMS = ["Icecrown","Lordaeron","Onyxia","Blackrock","Frostwolf","Frostmourne"];
@@ -217,7 +234,8 @@ async function enrich(ch){
   const hunter = ch.class==="Hunter";
   let gs=0, ilSum=0, ilN=0, twoH=0;
   infos.forEach(i=>{ if(i && i.slot===17) twoH++; });
-  eq.forEach((e,k)=>{ const i=infos[k]; e._i=i; if(!i) return;
+  const tms = await Promise.all(eq.map(e=>num(e.transmog)?itemInfo(num(e.transmog)).catch(()=>null):null));
+  eq.forEach((e,k)=>{ const i=infos[k]; e._i=i; e._t=tms[k]; if(!i) return;
     let g=itemGS(i,hunter); if (twoH>=2 && i.slot===17) g=Math.floor(g/2); // titan's grip
     e._gs=g; gs+=g; if(i.ilvl && ![4,19].includes(i.slot)){ilSum+=i.ilvl; ilN++;} });
   ch._eq = eq; ch._gs = gs; ch._ilvl = ilN?Math.round(ilSum/ilN):0;
@@ -356,7 +374,7 @@ async function viewChar(p){
   if (tab==="gear") t.innerHTML = tabGear(ch);
   else if (tab==="model") t.innerHTML = tabModel(ch);
   else if (tab==="raid") tabRaid(ch, t);
-  else if (tab==="talents") t.innerHTML = tabTalents(ch);
+  else if (tab==="talents") tabTalentTrees(ch, t);
   else if (tab==="prof") t.innerHTML = tabProf(ch);
   else if (tab==="pvp") t.innerHTML = tabPvp(ch);
 }
@@ -364,12 +382,17 @@ function icoHtml(i, label, cls="ico"){
   const q = i?i.quality:0, u = i?iconUrl(i.icon):"";
   return `<div class="${cls} b${q}" style="${u?`background-image:url('${u}')`:""}">${u?"":esc(label||"")}</div>`;
 }
+S.look = LS.get("look", true);
+function lookToggle(){ return `<div class="chips" style="margin-bottom:10px"><button class="chip ${S.look?"on":""}" onclick="S.look=true;LS.set('look',true);viewChar(S.params)">👁 Kako izgleda u igri</button><button class="chip ${!S.look?"on":""}" onclick="S.look=false;LS.set('look',false);viewChar(S.params)">Pravi itemi</button></div>`; }
+const tmCount = ch => (ch._eq||[]).filter(e=>e._t).length;
 function tabGear(ch){
   const eq=ch._eq||[]; if(!eq.length) return `<div class="card empty">Nema podataka o opremi.</div>`;
-  return `<div class="card">${eq.map((e,k)=>{ const i=e._i; const q=i?i.quality:1;
-    return `<div class="item" onclick="showTip(${k})">${icoHtml(i, slotName(i&&i.slot).slice(0,4))}
+  return `${tmCount(ch)?lookToggle():""}<div class="card">${eq.map((e,k)=>{ const i=e._i; const q=i?i.quality:1; const t=e._t;
+    const shown = (S.look && t) ? t : i;
+    return `<div class="item" onclick="showTip(${k})"><div style="position:relative">${icoHtml(shown, slotName(i&&i.slot).slice(0,4))}${t&&S.look?`<span class="tm">T</span>`:""}</div>
       <div style="flex:1;min-width:0"><div class="nm q${q}">${esc((i&&i.name)||e.name||("Item "+itemIdOf(e)))}</div>
-      <div class="sm mut">${slotName(i&&i.slot)}${i&&i.ilvl?" · ilvl "+i.ilvl:""}${e.transmog?" · transmog":""}</div></div>
+      <div class="sm mut">${slotName(i&&i.slot)}${i&&i.ilvl?" · ilvl "+i.ilvl:""}</div>
+      ${t?`<div class="sm" style="color:#c070ff">👁 izgleda kao: <span class="q${t.quality}">${esc(t.name)}</span></div>`:""}</div>
       ${e._gs?`<span class="sm" style="color:${gsColor(ch._gs)}">${e._gs}</span>`:""}</div>`; }).join("")}</div>`;
 }
 const SLOT_NAMES={1:"Glava",2:"Vrat",3:"Ramena",4:"Košulja",5:"Prsa",20:"Prsa",6:"Pojas",7:"Noge",8:"Stopala",9:"Zglobovi",10:"Ruke",11:"Prsten",12:"Trinket",13:"Jednoručno",21:"Glavna ruka",22:"Druga ruka",23:"Druga ruka",14:"Štit",15:"Daljinsko",25:"Bacanje",26:"Daljinsko",28:"Relic",16:"Plašt",17:"Dvoručno",19:"Tabard"};
@@ -422,9 +445,9 @@ function dollSlots(ch){
 }
 function dollCell(ch, by, key, used){
   const list=by[key]||[]; const idx=(used[key]=(used[key]||0)); used[key]++;
-  const k=list[idx]; const e=k!=null?ch._eq[k]:null; const i=e&&e._i;
-  const u=i?iconUrl(i.icon):"";
-  return `<div class="slot ${i?"b"+i.quality:""}" ${k!=null?`onclick="showTip(${k})"`:""} style="${u?`background-image:url('${u}')`:""}">${u?"":(i?esc(slotName(i.slot).slice(0,4)):"")}</div>`;
+  const k=list[idx]; const e=k!=null?ch._eq[k]:null; const i=e&&e._i; const t=e&&e._t&&S.look?e._t:null;
+  const u=(t||i)?iconUrl((t||i).icon):"";
+  return `<div class="slot ${i?"b"+i.quality:""}" ${k!=null?`onclick="showTip(${k})"`:""} style="${u?`background-image:url('${u}')`:""}">${t?`<span class="tm">T</span>`:""}${u?"":(i?esc(slotName(i.slot).slice(0,4)):"")}</div>`;
 }
 const warmaneUrl = (ch, page="summary") => `${ARMORY}/character/${encodeURIComponent(ch.name)}/${encodeURIComponent(ch.realm)}/${page}`;
 function open3D(){
@@ -434,6 +457,14 @@ function open3D(){
   if (window.BashNative && window.BashNative.openWeb) window.BashNative.openWeb(url, ch.name+" · 3D", true);
   else window.open(url,"_blank");
 }
+function openBash3D(){
+  const ch=S.cur; if(!ch) return;
+  const race=RACE_ID[ch.race]; const gender=String(ch.gender||"").toLowerCase().startsWith("f")?1:0;
+  if (!race){ toast("Nepoznata rasa"); return; }
+  if (!(window.BashNative && window.BashNative.openModel)){ toast("Bash 3D radi u APK-u"); return; }
+  const items=(ch._eq||[]).filter(e=>e._i).map(e=>({item:itemIdOf(e), transmog:num(e.transmog)||0, inv:e._i.slot||0, display:e._i.displayId||0}));
+  window.BashNative.openModel(JSON.stringify({name:ch.name, race, gender, items}), ch.name+" · Bash 3D");
+}
 function openWarmane(page,title){
   const ch=S.cur; if(!ch) return; const url=warmaneUrl(ch,page);
   if (window.BashNative && window.BashNative.openWeb) window.BashNative.openWeb(url, title||ch.name, false);
@@ -442,9 +473,10 @@ function openWarmane(page,title){
 function tabModel(ch){
   const by=dollSlots(ch), used={}; const col=CLASS[ch.class]||"#8cff2e";
   return `<div class="card" style="text-align:center">
-    <div class="sm mut" style="margin-bottom:10px">Pravi 3D model iz Warmane armoryja: tvoj lik s izgledom i gearom kao u igri. Vrti ga prstom.</div>
-    <button class="btn" style="width:100%;padding:16px;font-size:17px" onclick="open3D()">▶ Otvori 3D model</button></div>
-  <div class="card"><b>Oprema</b><div class="doll" style="margin-top:10px">
+    <div class="sm mut" style="margin-bottom:10px">3D lik s tvojim gearom${tmCount(ch)?" i transmogom":""}, kao u igri. Vrti ga prstom.</div>
+    <button class="btn" style="width:100%;padding:16px;font-size:17px" onclick="openBash3D()">▶ Bash 3D lik</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" onclick="open3D()">Warmane 3D</button></div>
+  <div class="card"><b>Oprema</b>${tmCount(ch)?`<div style="margin-top:8px">${lookToggle()}</div>`:""}<div class="doll" style="margin-top:10px">
     <div class="side">${DOLL_L.map(s=>dollCell(ch,by,s,used)).join("")}</div>
     <div class="center" style="color:${col}">
       <svg class="sil" viewBox="0 0 100 200" fill="currentColor" opacity=".35"><circle cx="50" cy="22" r="15"/><path d="M28 42h44l10 50-10 4-6-30v52l4 66H58l-8-56-8 56H30l4-66V66l-6 30-10-4z"/></svg>
@@ -575,6 +607,93 @@ async function tabRaid(ch, el){
   el.innerHTML = html;
 }
 
+
+/* ---------- Talent trees (like in game) ---------- */
+function classTrees(ch){ return (window.TALENTS||{})[ch.class]||null; }
+function validSpec(str, trees){
+  const total=trees.reduce((a,t)=>a+t.t.length,0);
+  const d=str.replace(/[^0-9]/g,""); if (d.length<total) return null;
+  const arr=d.slice(0,total).split("").map(Number);
+  let k=0, sum=0; for (const t of trees) for (const x of t.t){ if (arr[k]>x[2]) return null; sum+=arr[k]; k++; }
+  if (sum<1 || sum>71) return null;
+  return arr;
+}
+function fromDashed(str, trees){ // "0550-23-005" style (wowhead / armory)
+  const parts=str.split("-"); if (parts.length!==3) return null;
+  const arr=[]; for (let i=0;i<3;i++){ const p=parts[i].padEnd(trees[i].t.length,"0").slice(0,trees[i].t.length); arr.push(...p.split("").map(Number)); }
+  return validSpec(arr.join(""), trees);
+}
+function extractSpecs(raw, trees){
+  const specs=[]; const total=trees.reduce((a,t)=>a+t.t.length,0);
+  const add=a=>{ if(a && !specs.some(s=>s.join("")===a.join(""))) specs.push(a); };
+  (raw.match(/[0-5]*-[0-5]*-[0-5]*/g)||[]).filter(m=>m.replace(/-/g,"").length>=3).forEach(m=>add(fromDashed(m,trees)));
+  (raw.match(new RegExp("[0-5]{"+total+"}(?![0-9])","g"))||[]).forEach(m=>add(validSpec(m,trees)));
+  if (!specs.length){ // rank texts "2/5" in page order
+    const doc=new DOMParser().parseFromString(raw,"text/html");
+    const ranks=[...doc.querySelectorAll("body *")].filter(e=>!e.children.length && /^\s*\d\s*\/\s*\d\s*$/.test(e.textContent)).map(e=>num(e.textContent.split("/")[0]));
+    for (let o=0; o+total<=ranks.length && specs.length<2; o+=total) add(validSpec(ranks.slice(o,o+total).join(""),trees));
+  }
+  return specs.slice(0,2);
+}
+async function loadTalents(ch, realm){
+  const trees=classTrees(ch); if(!trees) return {trees:null,specs:[]};
+  if (realm==="DEMO") return {trees, specs:[DEMO_TAL(trees,[0,17,54]), DEMO_TAL(trees,[3,57,11])]};
+  const k="tal_"+realm+"/"+ch.name.toLowerCase(); if (S.cache[k]) return S.cache[k];
+  let specs=[];
+  for (const s of (ch.talents||[])){ // API may already carry per-talent ranks
+    const p=s.points||s.talents||s.string; if (!p) continue;
+    if (typeof p==="string") { const a=fromDashed(p,trees)||validSpec(p,trees); if(a) specs.push(a); }
+    else if (Array.isArray(p) && p.flat(3).length>=trees.reduce((a,t)=>a+t.t.length,0)) { const a=validSpec(p.flat(3).join(""),trees); if(a) specs.push(a); }
+  }
+  if (!specs.length){ try { specs=extractSpecs(await getText(warmaneUrl(ch,"talents")), trees); } catch(e){} }
+  const out={trees,specs}; if (specs.length) S.cache[k]=out; return out;
+}
+function DEMO_TAL(trees, split){ const arr=[]; trees.forEach((t,ti)=>{ let left=split[ti];
+  t.t.forEach(x=>{ const v=Math.min(x[2], left); arr.push(v); left-=v; }); }); return arr; }
+async function spellInfo(id){
+  const ck=LS.get("sp_"+id,null); if (ck) return ck;
+  try { const j=JSON.parse(await getText(`https://nether.wowhead.com/wotlk/tooltip/spell/${id}`));
+    const v={name:j.name||"", icon:j.icon||"", tooltip:j.tooltip||""}; LS.set("sp_"+id,v); return v; } catch(e){ return null; }
+}
+function treeSums(trees, arr){ let k=0; return trees.map(t=>{ let s=0; t.t.forEach(()=>{ s+=arr[k++]; }); return s; }); }
+async function tabTalentTrees(ch, el){
+  el.innerHTML=`<div class="spin"></div><div class="empty sm">Učitavam talente…</div>`;
+  const d=await loadTalents(ch, S.params.realm);
+  if (S.view!=="char" || S.params.tab!=="talents") return;
+  if (!d.trees){ el.innerHTML=tabTalents(ch); return; }
+  if (!d.specs.length){
+    el.innerHTML = tabTalents(ch) + `<div class="card err"><b>Ne mogu pročitati raspored talenata.</b><div class="sm" style="margin-top:6px">Otvori ih direktno na Warmaneu.</div>
+      <button class="btn" style="width:100%;margin-top:10px" onclick="openWarmane('talents','${esc(ch.name)} · Talenti')">Otvori talente</button></div>`; return; }
+  const si=Math.min(S.params.spec||0, d.specs.length-1); const arr=d.specs[si]; const sums=treeSums(d.trees,arr);
+  const main=sums.indexOf(Math.max(...sums)); const ti=S.params.tree!=null?S.params.tree:main;
+  const names=(ch.talents||[]).map(t=>t.tree);
+  let html = d.specs.length>1 ? `<div class="chips" style="margin-bottom:10px">${d.specs.map((sp,i)=>{const sm=treeSums(d.trees,sp);const mi=sm.indexOf(Math.max(...sm));
+      return `<button class="chip ${i===si?"on":""}" onclick="S.params.spec=${i};S.params.tree=null;viewChar(S.params)">${i?"Drugi":"Glavni"} · ${esc(d.trees[mi].n)} ${sm.join("/")}</button>`}).join("")}</div>` : "";
+  html += `<div class="ttabs">${d.trees.map((t,i)=>`<button class="${i===ti?"on":""}" onclick="S.params.tree=${i};viewChar(S.params)">${esc(t.n)} <b>${sums[i]}</b></button>`).join("")}</div>`;
+  let off=0; for (let i=0;i<ti;i++) off+=d.trees[i].t.length;
+  const tree=d.trees[ti]; const rows=Math.max(...tree.t.map(x=>x[0]))+1;
+  const pos={}; tree.t.forEach((x,j)=>pos[x[0]+"_"+x[1]]=j);
+  let arrows="";
+  tree.t.forEach((x,j)=>{ if (x.length>5){ const from=pos[x[5]+"_"+x[6]]; if(from==null) return;
+    const top=x[5]*58+51, h=(x[0]-x[5])*58-44; if (x[1]===x[6] && h>0)
+      arrows+=`<div class="arrow ${arr[off+j]>0?"on":""}" style="left:calc(${x[1]*25+12.5}% - 2px);top:${top}px;height:${h}px"></div>`; } });
+  html += `<div class="tree" style="background-image:url('${tree.bg}')"><div class="thead"><b style="font-size:17px">${esc(tree.n)}</b><span class="badge">${sums[ti]} bodova</span></div>
+    <div class="tgrid" style="grid-template-rows:repeat(${rows},58px)">${arrows}${tree.t.map((x,j)=>{const r=arr[off+j];
+      return `<div class="tal ${r>=x[2]?"m":r>0?"p":""}" id="tal${j}" style="grid-row:${x[0]+1};grid-column:${x[1]+1}" onclick="talTip(${ti},${j},${r})"><span class="rk">${r}/${x[2]}</span></div>`}).join("")}</div></div>
+    <div class="sm mut" style="text-align:center;margin:8px 0 12px">Klikni talent za opis · žuto = maksimum · zeleno = djelimično</div>`;
+  el.innerHTML=html;
+  tree.t.forEach(async (x,j)=>{ const sp=await spellInfo(x[3][0]); const n=document.getElementById("tal"+j); if(n&&sp&&sp.icon) n.style.backgroundImage=`url('${iconUrl(sp.icon,"medium")}')`; });
+}
+async function talTip(ti,j,r){
+  const ch=S.cur; const x=classTrees(ch)[ti].t[j]; closeTip();
+  const d=document.createElement("div"); d.className="tip";
+  d.innerHTML=`<div class="row" style="justify-content:space-between"><b>${esc(x[4])}</b><button class="btn sm" onclick="closeTip()">✕</button></div><div class="sm mut">Rank ${r}/${x[2]}</div><div class="spin" style="margin:14px auto"></div>`;
+  document.body.appendChild(d);
+  const sp=await spellInfo(x[3][Math.max(0,r-1)]);
+  if (d.isConnected) d.innerHTML=`<div class="row" style="justify-content:space-between"><b style="color:${r?"#ffd100":"#ccc"}">${esc((sp&&sp.name)||x[4])}</b><button class="btn sm" onclick="closeTip()">✕</button></div>
+    <div class="sm mut" style="margin-bottom:6px">Rank ${r}/${x[2]}</div>${sp&&sp.tooltip?sanitizeTip(sp.tooltip):`<div class="mut">Opis nije dostupan.</div>`}`;
+}
+
 /* ---------- Guild ---------- */
 async function viewGuild(p){
   const app=$("#app");
@@ -623,11 +742,12 @@ const DEMO_ITEMS = {
  900011:{id:900011,name:"Demo Ashen Band",ilvl:264,quality:4,slot:11},900012:{id:900012,name:"Demo Signet",ilvl:251,quality:4,slot:11},
  900013:{id:900013,name:"Demo Fang",ilvl:264,quality:4,slot:12},900014:{id:900014,name:"Demo Tiny Abomination",ilvl:264,quality:4,slot:12},
  900015:{id:900015,name:"Demo Shadowmourne",ilvl:284,quality:5,slot:17},900016:{id:900016,name:"Demo Sigil",ilvl:264,quality:4,slot:28},
- 900017:{id:900017,name:"Demo Tabard",ilvl:1,quality:1,slot:19}
+ 900017:{id:900017,name:"Demo Tabard",ilvl:1,quality:1,slot:19},
+ 900020:{id:900020,name:"Demo Crown of the Fire Festival",ilvl:1,quality:3,slot:1},900021:{id:900021,name:"Demo Tier 2 Pauldrons",ilvl:76,quality:4,slot:3}
 };
 const DEMO_CHAR = {name:"Bashdk",realm:"DEMO",online:true,level:"80",faction:"Horde",gender:"Male",race:"Blood Elf",class:"Death Knight",
  honorablekills:"12873",guild:"Bash Squad",achievementpoints:"9420",
- equipment:Object.keys(DEMO_ITEMS).map(id=>({name:DEMO_ITEMS[id].name,item:id,transmog:""})),
+ equipment:Object.keys(DEMO_ITEMS).map(id=>({name:DEMO_ITEMS[id].name,item:id,transmog:id==="900001"?"900020":id==="900003"?"900021":""})),
  talents:[{tree:"Unholy",points:[0,17,54]},{tree:"Frost",points:[3,57,11]}],
  professions:[{name:"Blacksmithing",skill:"450"},{name:"Mining",skill:"450"}],
  pvpteams:[{type:"2v2",name:"Bash Bros",rating:"2140",rank:"312"},{type:"3v3",name:"Monster Green",rating:"1890",rank:""}]};

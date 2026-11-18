@@ -224,6 +224,27 @@ public class MainActivity extends Activity {
         public void post(final String id, final String url, final String body) { request(id, url, body); }
 
         @JavascriptInterface
+        public void openModel(final String json, final String title) {
+            runOnUiThread(() -> {
+                try {
+                    InputStream in = getAssets().open("model.html");
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    byte[] buf = new byte[8192]; int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    in.close();
+                    String html = out.toString("UTF-8").replace("/*__DATA__*/null", json);
+                    overlayModelMode = false;
+                    overlayTitle.setText(title);
+                    overlayWeb.getSettings().setUserAgentString(UA_MOBILE);
+                    overlayWeb.loadDataWithBaseURL("https://www.wowhead.com/", html, "text/html", "UTF-8", null);
+                    overlay.setVisibility(View.VISIBLE);
+                } catch (Exception e) {
+                    overlayTitle.setText("3D greška");
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void openWeb(final String url, final String title, final boolean modelMode) {
             runOnUiThread(() -> openOverlay(url, title, modelMode));
         }

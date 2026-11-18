@@ -2,7 +2,7 @@
 
 Warmane (WotLK 3.3.5) armory za telefon, u AMOLED i Monster-green stilu.
 
-**Funkcije:** pretraga lika i guilda, gear s Wowhead tooltipima, GearScore (GearScoreLite formula), prosječni ilvl, Raid check (ICC 10/25 normal i HC, RS, ToC/ToGC, Ulduar, Naxx, Onyxia, OS), 3D model lika (Warmaneov viewer unutar aplikacije), paper doll, talenti (oba speca), profesije, PvP i arena timovi, guild roster s filterima, favoriti s online statusom, poređenje dva lika, DEMO mod.
+**Funkcije:** pretraga lika i guilda, gear s Wowhead tooltipima, GearScore (GearScoreLite formula), prosječni ilvl, Raid check (ICC 10/25 normal i HC, RS, ToC/ToGC, Ulduar, Naxx, Onyxia, OS), 3D model lika s gearom i transmogom (Bash 3D + Warmane 3D), transmog prikaz (kako izgleda u igri), talent stabla kao u igri s ikonicama i rankovima, paper doll, oba speca, profesije, PvP i arena timovi, guild roster s filterima, favoriti s online statusom, poređenje dva lika, DEMO mod.
 
 ## APK
 Svaki push na `main` pokreće GitHub Actions, koji napravi APK i objavi ga u **Releases → latest** (`BashArmory-debug.apk`).
