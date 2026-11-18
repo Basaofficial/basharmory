@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>#Bash Armory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000; --card:#0b0f0b; --card2:#111811; --line:#1d2a1d;
+  --g:#8cff2e; --g2:#5fd400; --gdim:#8cff2e22; --txt:#e8ffe0; --mut:#86a17c;
+  --q0:#9d9d9d; --q1:#ffffff; --q2:#1eff00; --q3:#0070dd; --q4:#a335ee; --q5:#ff8000; --q6:#e6cc80; --q7:#e6cc80;
+  --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:15px}
+body{min-height:100vh;padding-bottom:84px;overflow-x:hidden}
+#fx{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+#app{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 14px 20px}
+.hand{font-family:"Permanent Marker",cursive;letter-spacing:.5px}
+header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+header h1{margin:0;font-size:26px;color:var(--g);text-shadow:0 0 18px #8cff2e66}
+header .sub{color:var(--mut);font-size:12px}
+.back{background:none;border:1px solid var(--line);color:var(--g);width:38px;height:38px;border-radius:12px;font-size:18px}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:0 8px 30px #000a, inset 0 1px 0 #ffffff08}
+.row{display:flex;gap:8px;align-items:center}
+.col{display:flex;flex-direction:column;gap:8px}
+input,select{width:100%;background:#050805;border:1px solid var(--line);color:var(--txt);padding:13px 14px;border-radius:12px;font-size:16px;outline:none}
+input:focus,select:focus{border-color:var(--g);box-shadow:0 0 0 3px var(--gdim)}
+.btn{background:var(--g);color:#000;border:0;padding:13px 16px;border-radius:12px;font-weight:800;font-size:15px;box-shadow:0 6px 20px #8cff2e40;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--g);border:1px solid var(--g);box-shadow:none}
+.btn.sm{padding:8px 12px;font-size:13px;border-radius:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#070a07;padding:7px 11px;border-radius:999px;font-size:13px;color:var(--txt)}
+.chip.on{border-color:var(--g);color:var(--g);background:var(--gdim)}
+.mut{color:var(--mut)} .sm{font-size:12px}
+.list .it{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #ffffff08;cursor:pointer}
+.list .it:last-child{border-bottom:0}
+.dot{width:9px;height:9px;border-radius:50%;background:#444;flex:none}
+.dot.on{background:var(--g);box-shadow:0 0 8px var(--g)}
+.hero{display:flex;gap:14px;align-items:center}
+.crest{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:28px;font-weight:800;color:#000;flex:none}
+.hero h2{margin:0;font-size:24px}
+.gs{font-size:30px;font-weight:800;line-height:1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat{background:#050805;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:17px} .stat span{font-size:11px;color:var(--mut)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:4px 0 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:#060906;color:var(--mut);font-weight:600}
+.tab.on{color:#000;background:var(--g);border-color:var(--g)}
+.item{display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid #ffffff08}
+.ico{width:40px;height:40px;border-radius:9px;border:2px solid #333;background:#111 center/cover;flex:none;display:grid;place-items:center;font-size:10px;color:var(--mut);overflow:hidden}
+.item .nm{font-weight:600;font-size:14px}
+.q0{color:var(--q0)}.q1{color:var(--q1)}.q2{color:var(--q2)}.q3{color:var(--q3)}.q4{color:var(--q4)}.q5{color:var(--q5)}.q6{color:var(--q6)}.q7{color:var(--q7)}
+.b0{border-color:var(--q0)!important}.b1{border-color:#bbb!important}.b2{border-color:var(--q2)!important}.b3{border-color:var(--q3)!important}.b4{border-color:var(--q4)!important;box-shadow:0 0 8px #a335ee55}.b5{border-color:var(--q5)!important;box-shadow:0 0 10px #ff800066}.b6,.b7{border-color:var(--q6)!important}
+.bar{height:8px;background:#0a120a;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--g2),var(--g))}
+.empty{text-align:center;padding:30px 10px;color:var(--mut)}
+.err{border-color:#ff3b3b55;color:#ffb3b3}
+.spin{width:34px;height:34px;border:3px solid #8cff2e22;border-top-color:var(--g);border-radius:50%;animation:sp 0.8s linear infinite;margin:30px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:#000000e6;backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+nav button{background:none;border:0;color:var(--mut);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 10px;font-weight:600}
+nav button .i{font-size:20px}
+nav button.on{color:var(--g)}
+/* paper doll */
+.doll{display:grid;grid-template-columns:52px 1fr 52px;gap:8px;align-items:start}
+.doll .side{display:flex;flex-direction:column;gap:6px}
+.doll .slot{width:48px;height:48px;border-radius:10px;border:2px solid #222;background:#0a0a0a center/cover;display:grid;place-items:center;font-size:9px;color:#555;cursor:pointer;position:relative}
+.doll .center{position:relative;border-radius:16px;border:1px solid var(--line);min-height:100%;background:radial-gradient(ellipse at 50% 35%,#8cff2e18,transparent 65%),#030503;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.doll .bottom{grid-column:1/4;display:flex;justify-content:center;gap:8px}
+.sil{width:70%;max-width:180px;opacity:.9;filter:drop-shadow(0 0 16px currentColor)}
+#model3d{width:100%;aspect-ratio:3/4;border-radius:16px;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 40%,#8cff2e20,#000 70%);position:relative;overflow:hidden}
+#model3d canvas{width:100%!important;height:100%!important}
+.tip{position:fixed;left:12px;right:12px;bottom:90px;z-index:9;background:#050805f5;border:1px solid var(--g);border-radius:14px;padding:12px;font-size:13px;max-height:55vh;overflow:auto;box-shadow:0 10px 40px #000}
+.tip table{width:100%;border-collapse:collapse;color:var(--txt);font-size:13px}
+.tip td,.tip th{padding:0;text-align:left;font-weight:400;vertical-align:top}
+.tip th{text-align:right}
+.tip .q,.tip .q1{color:#fff}.tip .q2{color:var(--q2)}.tip .q3{color:var(--q3)}.tip .q4{color:var(--q4)}.tip .q5{color:var(--q5)}
+.tip a{color:var(--g)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--g);color:#000;padding:10px 16px;border-radius:12px;font-weight:700;z-index:20;box-shadow:0 8px 30px #8cff2e55}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:var(--gdim);color:var(--g);border:1px solid #8cff2e55}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid #ffffff08;font-size:14px}
+.vs .l{text-align:right}.vs .m{color:var(--mut);font-size:11px;text-align:center;min-width:80px}
+.win{color:var(--g);font-weight:800}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="app"></div>
+<nav id="nav">
+  <button data-go="home" class="on"><span class="i">⌕</span>Traži</button>
+  <button data-go="favs"><span class="i">★</span>Favoriti</button>
+  <button data-go="compare"><span class="i">⚔</span>Poredi</button>
+  <button data-go="settings"><span class="i">⚙</span>Postavke</button>
+</nav>
+<script>
+/* ===================== #Bash Armory ===================== */
+const REALMS = ["Icecrown","Lordaeron","Onyxia","Blackrock","Frostwolf","Frostmourne"];
+const CLASS = {
+  "Death Knight":"#C41E3A","Druid":"#FF7C0A","Hunter":"#AAD372","Mage":"#3FC7EB","Paladin":"#F48CBA",
+  "Priest":"#FFFFFF","Rogue":"#FFF468","Shaman":"#0070DD","Warlock":"#8788EE","Warrior":"#C69B6D","Monk":"#00FF98"
+};
+const RACE_ID = {"Human":1,"Orc":2,"Dwarf":3,"Night Elf":4,"Undead":5,"Tauren":6,"Gnome":7,"Troll":8,"Goblin":9,"Blood Elf":10,"Draenei":11,"Worgen":22};
+const RACE_MODEL = {1:"human",2:"orc",3:"dwarf",4:"nightelf",5:"scourge",6:"tauren",7:"gnome",8:"troll",9:"goblin",10:"bloodelf",11:"draenei",22:"worgen"};
+const ARMORY = "https://armory.warmane.com";
+const LS = {
+  get(k,d){try{const v=localStorage.getItem("ba_"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem("ba_"+k,JSON.stringify(v))}catch(e){}}
+};
+const S = {
+  realm: LS.get("realm","Icecrown"),
+  favs: LS.get("favs",[]),
+  recent: LS.get("recent",[]),
+  proxy: LS.get("proxy",""),
+  cmp: LS.get("cmp",[null,null]),
+  view: "home", stack: [], cache:{}
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const J = o => esc(JSON.stringify(o));
+const num = v => { const n = parseInt(v,10); return isNaN(n)?0:n; };
+const fmt = n => num(n).toLocaleString("de-DE");
+function toast(t){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800)}
+
+/* ---------- HTTP: native bridge (APK, no CORS) -> direct -> proxy ---------- */
+const pending = {}; let reqId = 0;
+window.__nativeCb = (id, ok, body) => { const p = pending[id]; if(!p) return; delete pending[id]; ok ? p.res(body) : p.rej(new Error(body||"Mreža")); };
+function nativeGet(url){
+  return new Promise((res,rej)=>{ const id="r"+(++reqId); pending[id]={res,rej}; window.BashNative.get(id,url);
+    setTimeout(()=>{ if(pending[id]){delete pending[id];rej(new Error("Timeout"))} },25000); });
+}
+async function getText(url){
+  if (window.BashNative && window.BashNative.get) return nativeGet(url);
+  try { const r = await fetch(url); if(!r.ok) throw new Error("HTTP "+r.status); return await r.text(); }
+  catch(e){
+    if (!S.proxy) throw new Error("Browser blokira zahtjev (CORS). Koristi APK ili dodaj proxy u Postavkama.");
+    const r = await fetch(S.proxy + encodeURIComponent(url)); if(!r.ok) throw new Error("Proxy HTTP "+r.status); return await r.text();
+  }
+}
+async function getJSON(url){
+  const t = await getText(url);
+  let j; try { j = JSON.parse(t); } catch(e){ throw new Error("Server nije vratio podatke (možda je armory trenutno nedostupan)."); }
+  if (j && j.error) throw new Error(j.error);
+  return j;
+}
+
+/* ---------- Warmane API ---------- */
+async function apiChar(name, realm){
+  if (realm === "DEMO") return JSON.parse(JSON.stringify(DEMO_CHAR));
+  return getJSON(`${ARMORY}/api/character/${encodeURIComponent(name)}/${encodeURIComponent(realm)}/summary`);
+}
+async function apiGuild(name, realm){
+  if (realm === "DEMO") return JSON.parse(JSON.stringify(DEMO_GUILD));
+  return getJSON(`${ARMORY}/api/guild/${encodeURIComponent(name)}/${encodeURIComponent(realm)}/summary`);
+}
+
+/* ---------- Item data (Wowhead WotLK): ilvl, quality, slot, icon, displayId ---------- */
+const SLOT_BY_NAME = {"head":1,"neck":2,"shoulder":3,"shirt":4,"chest":5,"waist":6,"legs":7,"feet":8,"wrist":9,"hands":10,"finger":11,"trinket":12,"one-hand":13,"shield":14,"ranged":15,"back":16,"two-hand":17,"tabard":19,"robe":20,"main hand":21,"off hand":22,"held in off-hand":23,"thrown":25,"relic":28};
+function itemIdOf(e){ return num(e && (e.item || e.itemid || e.id || e.entry)); }
+async function itemInfo(id){
+  if (!id) return null;
+  if (DEMO_ITEMS[id]) return DEMO_ITEMS[id];
+  const ck = LS.get("it_"+id, null); if (ck) return ck;
+  let info = null;
+  try { // XML: has displayId + inventorySlot (best, works in APK)
+    const x = await getText(`https://www.wowhead.com/wotlk/item=${id}&xml`);
+    const d = new DOMParser().parseFromString(x,"text/xml");
+    const g = s => d.querySelector(s);
+    if (g("item")) {
+      info = { id, name: g("name")?.textContent||"", ilvl: num(g("level")?.textContent),
+        quality: num(g("quality")?.getAttribute("id")), icon: g("icon")?.textContent||"",
+        displayId: num(g("icon")?.getAttribute("displayId")), slot: num(g("inventorySlot")?.getAttribute("id")),
+        tooltip: g("htmlTooltip")?.textContent||"" };
+    }
+  } catch(e){}
+  if (!info) { try { // tooltip JSON fallback
+    const j = JSON.parse(await getText(`https://nether.wowhead.com/wotlk/tooltip/item/${id}`));
+    const tt = j.tooltip||"";
+    const il = tt.match(/Item Level (?:<!--ilvl-->)?(\d+)/i);
+    const sm = tt.match(/<td>(Head|Neck|Shoulder|Back|Chest|Shirt|Tabard|Wrist|Hands|Waist|Legs|Feet|Finger|Trinket|One-Hand|Two-Hand|Main Hand|Off Hand|Held In Off-hand|Ranged|Thrown|Relic)<\/td>/i);
+    let slot = sm ? SLOT_BY_NAME[sm[1].toLowerCase()] : 0;
+    if (slot===22 && /Shield/i.test(tt)) slot = 14;
+    info = { id, name:j.name||"", ilvl: il?num(il[1]):0, quality:num(j.quality), icon:j.icon||"", displayId:0, slot, tooltip:tt };
+  } catch(e){} }
+  if (info) LS.set("it_"+id, info);
+  return info;
+}
+const iconUrl = (icon, size="large") => icon ? `https://wow.zamimg.com/images/wow/icons/${size}/${String(icon).toLowerCase()}.jpg` : "";
+
+/* ---------- GearScore (GearScoreLite 3.3.5 formula) ---------- */
+const GS_A = {4:[91.45,0.65],3:[81.375,0.8125],2:[73,1]};
+const GS_B = {4:[26,1.2],3:[0.75,1.8],2:[8,2],1:[0,2.25]};
+const GS_SLOTMOD = {1:1,2:0.5625,3:0.75,5:1,20:1,6:0.75,7:1,8:0.75,9:0.5625,10:0.75,11:0.5625,12:0.5625,16:0.5625,13:1,21:1,22:1,23:1,14:1,17:2,15:0.3164,25:0.3164,26:0.3164,28:0.3164,4:0,19:0};
+function itemGS(info, hunter){
+  if (!info || !info.ilvl) return 0;
+  let q = info.quality, il = info.ilvl, qs = 1;
+  if (q===5){qs=1.3;q=4} else if (q===0||q===1){qs=0.005;q=2} else if (q===7){q=3;il=187.05}
+  if (q<2||q>4) q = Math.min(4,Math.max(2,q));
+  let mod = GS_SLOTMOD[info.slot]; if (mod==null) return 0;
+  if (hunter){ if ([13,21,22,17].includes(info.slot)) mod*=0.3164; if ([15,25,26].includes(info.slot)) mod*=5.3224; }
+  const T = il>120 ? GS_A : GS_B; const ab = T[q] || T[2]; if (!ab) return 0;
+  return Math.max(0, Math.floor(((il-ab[0])/ab[1]) * mod * 1.8618 * qs));
+}
+function gsColor(gs){
+  if (gs>=6000) return "#ff8000"; if (gs>=5500) return "#ff3df0"; if (gs>=5000) return "#a335ee";
+  if (gs>=4000) return "#0070dd"; if (gs>=3000) return "#1eff00"; return "#cfcfcf";
+}
+async function enrich(ch){
+  const eq = (ch.equipment||[]).filter(e=>itemIdOf(e));
+  const infos = await Promise.all(eq.map(e=>itemInfo(itemIdOf(e)).catch(()=>null)));
+  const hunter = ch.class==="Hunter";
+  let gs=0, ilSum=0, ilN=0, twoH=0;
+  infos.forEach(i=>{ if(i && i.slot===17) twoH++; });
+  eq.forEach((e,k)=>{ const i=infos[k]; e._i=i; if(!i) return;
+    let g=itemGS(i,hunter); if (twoH>=2 && i.slot===17) g=Math.floor(g/2); // titan's grip
+    e._gs=g; gs+=g; if(i.ilvl && ![4,19].includes(i.slot)){ilSum+=i.ilvl; ilN++;} });
+  ch._eq = eq; ch._gs = gs; ch._ilvl = ilN?Math.round(ilSum/ilN):0;
+  return ch;
+}
+
+/* ---------- Navigation ---------- */
+function go(view, params={}, push=true){
+  if (push && S.view) S.stack.push({view:S.view, params:S.params});
+  S.view=view; S.params=params;
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===view));
+  closeTip(); render(); window.scrollTo(0,0);
+}
+window.bashBack = function(){ if ($(".tip")) { closeTip(); return true; }
+  const p=S.stack.pop(); if(!p) return false; go(p.view,p.params,false); return true; };
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{ S.stack=[]; go(b.dataset.go,{},false); });
+function head(title, sub, back){
+  return `<header>${back?`<button class="back" onclick="bashBack()">‹</button>`:""}
+  <div><h1 class="hand">${title}</h1>${sub?`<div class="sub">${sub}</div>`:""}</div></header>`;
+}
+function render(){
+  const v=S.view, app=$("#app");
+  if (v==="home") app.innerHTML = viewHome();
+  else if (v==="favs") app.innerHTML = viewFavs();
+  else if (v==="settings") app.innerHTML = viewSettings();
+  else if (v==="compare") viewCompare();
+  else if (v==="char") viewChar(S.params);
+  else if (v==="guild") viewGuild(S.params);
+  bind();
+}
+function bind(){
+  const f=$("#sform"); if(f) f.onsubmit=e=>{e.preventDefault(); const n=$("#sname").value.trim(); if(!n) return;
+    const r=$("#srealm").value; S.realm=r; LS.set("realm",r);
+    if ($("#stype").value==="guild") go("guild",{name:n,realm:r}); else go("char",{name:n,realm:r}); };
+}
+
+/* ---------- Views ---------- */
+function charRow(c){
+  const col = CLASS[c.class]||"#8cff2e";
+  return `<div class="it" onclick="go('char',${J({name:c.name,realm:c.realm})})">
+    <span class="dot ${c.online?"on":""}"></span>
+    <div style="flex:1"><div style="color:${col};font-weight:700">${esc(c.name)}</div>
+    <div class="sm mut">${c.level?esc(c.level)+" · ":""}${esc(c.race||"")} ${esc(c.class||"")} · ${esc(c.realm)}</div></div>
+    ${c.gs?`<b style="color:${gsColor(c.gs)}">${c.gs}</b>`:""}</div>`;
+}
+function viewHome(){
+  return head("#Bash Armory","Warmane · WotLK 3.3.5") + `
+  <form class="card col" id="sform">
+    <div class="row"><select id="stype" style="flex:1"><option value="char">Lik</option><option value="guild">Guild</option></select>
+    <select id="srealm" style="flex:1.4">${REALMS.map(r=>`<option ${r===S.realm?"selected":""}>${r}</option>`).join("")}<option value="DEMO">DEMO</option></select></div>
+    <input id="sname" placeholder="Ime lika ili guilda" autocomplete="off" autocapitalize="words">
+    <button class="btn">Pretraži</button>
+  </form>
+  <div class="card"><div class="row" style="justify-content:space-between"><b>Nedavno</b>
+    ${S.recent.length?`<button class="btn ghost sm" onclick="S.recent=[];LS.set('recent',[]);render()">Obriši</button>`:""}</div>
+    <div class="list">${S.recent.length?S.recent.map(charRow).join(""):`<div class="empty">Još ništa. Probaj realm <b>DEMO</b> za primjer.</div>`}</div></div>`;
+}
+function viewFavs(){
+  return head("Favoriti", S.favs.length+" likova") + `<div class="card">
+   ${S.favs.length?`<button class="btn ghost sm" style="margin-bottom:6px" onclick="refreshFavs(this)">↻ Osvježi online status</button>`:""}
+   <div class="list">${S.favs.length?S.favs.map(charRow).join(""):`<div class="empty">Dodaj lik u favorite zvjezdicom ★ na profilu.</div>`}</div></div>`;
+}
+async function refreshFavs(btn){
+  btn.disabled=true; btn.textContent="Osvježavam…";
+  for (const f of S.favs){ try{ const c=await apiChar(f.name,f.realm); f.online=!!c.online; f.level=c.level; }catch(e){} }
+  LS.set("favs",S.favs); render();
+}
+function viewSettings(){
+  return head("Postavke","") + `<div class="card col">
+   <b>CORS proxy (samo za web verziju)</b>
+   <div class="sm mut">APK ne treba proxy. U browseru Warmane blokira direktne zahtjeve, pa unesi URL svog Cloudflare Workera (npr. https://ime.workers.dev/?url=).</div>
+   <input id="px" value="${esc(S.proxy)}" placeholder="https://...workers.dev/?url=">
+   <button class="btn" onclick="S.proxy=$('#px').value.trim();LS.set('proxy',S.proxy);toast('Snimljeno')">Snimi</button></div>
+  <div class="card col"><b>Keš</b><div class="sm mut">Podaci o itemima se čuvaju na telefonu da se brže učitava.</div>
+   <button class="btn ghost" onclick="Object.keys(localStorage).filter(k=>k.startsWith('ba_it_')).forEach(k=>localStorage.removeItem(k));toast('Keš obrisan')">Obriši keš itema</button></div>
+  <div class="card sm mut">#Bash Armory · by <a style="color:var(--g)" href="https://instagram.com/basa.gtm">@basa.gtm</a><br>
+  Podaci: Warmane Armory API · itemi i 3D: Wowhead. Neslužbena fan aplikacija.<br>
+  <a style="color:var(--g)" href="https://paypal.me/basagtm">☕ Buy me a coffee</a></div>`;
+}
+
+function rememberRecent(ch){
+  const e={name:ch.name,realm:ch.realm,class:ch.class,race:ch.race,level:ch.level,online:!!ch.online,gs:ch._gs};
+  S.recent=[e,...S.recent.filter(r=>!(r.name===e.name&&r.realm===e.realm))].slice(0,15); LS.set("recent",S.recent);
+  const f=S.favs.find(r=>r.name===e.name&&r.realm===e.realm); if(f){Object.assign(f,e);LS.set("favs",S.favs);}
+}
+function isFav(n,r){return S.favs.some(f=>f.name===n&&f.realm===r)}
+function toggleFav(){
+  const ch=S.cur; if(!ch) return;
+  if (isFav(ch.name,ch.realm)) S.favs=S.favs.filter(f=>!(f.name===ch.name&&f.realm===ch.realm));
+  else S.favs.unshift({name:ch.name,realm:ch.realm,class:ch.class,race:ch.race,level:ch.level,online:!!ch.online,gs:ch._gs});
+  LS.set("favs",S.favs); $("#favb").textContent=isFav(ch.name,ch.realm)?"★":"☆";
+}
+
+async function loadChar(name, realm){
+  const k=realm+"/"+name.toLowerCase();
+  if (S.cache[k]) return S.cache[k];
+  const ch = await apiChar(name, realm); ch.realm = ch.realm || realm;
+  await enrich(ch); S.cache[k]=ch; return ch;
+}
+async function viewChar(p){
+  const app=$("#app");
+  app.innerHTML = head(esc(p.name), esc(p.realm), true) + `<div class="spin"></div><div class="empty sm">Učitavam lik i gear…</div>`;
+  let ch; try { ch = await loadChar(p.name, p.realm); } catch(e){
+    app.innerHTML = head(esc(p.name), esc(p.realm), true) + `<div class="card err">${esc(e.message)}</div>`; return; }
+  if (S.view!=="char" || S.params!==p) return;
+  S.cur = ch; rememberRecent(ch);
+  const col = CLASS[ch.class]||"#8cff2e";
+  const tab = p.tab || "gear";
+  app.innerHTML = head(esc(ch.name), `${esc(ch.realm)}${p.realm==="DEMO"?' · <span class="badge">DEMO</span>':""}`, true) + `
+  <div class="card">
+    <div class="hero">
+      <div class="crest" style="background:${col};box-shadow:0 0 24px ${col}66">${esc((ch.class||"?")[0])}</div>
+      <div style="flex:1;min-width:0">
+        <h2 style="color:${col}">${esc(ch.name)}</h2>
+        <div class="mut sm">${esc(ch.level)} ${esc(ch.race)} ${esc(ch.class)} · ${esc(ch.faction||"")}</div>
+        ${ch.guild?`<div class="sm" style="margin-top:3px;cursor:pointer;color:var(--g)" onclick="go('guild',${J({name:ch.guild,realm:p.realm})})">&lt;${esc(ch.guild)}&gt;</div>`:""}
+      </div>
+      <button id="favb" class="back" style="font-size:20px" onclick="toggleFav()">${isFav(ch.name,ch.realm)?"★":"☆"}</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><b style="color:${gsColor(ch._gs)}">${ch._gs||"–"}</b><span>GearScore</span></div>
+      <div class="stat"><b>${ch._ilvl||"–"}</b><span>Prosj. ilvl</span></div>
+      <div class="stat"><b><span class="dot ${ch.online?"on":""}" style="display:inline-block"></span> ${ch.online?"Online":"Offline"}</b><span>Status</span></div>
+      <div class="stat"><b>${fmt(ch.achievementpoints)}</b><span>Achievementi</span></div>
+      <div class="stat"><b>${fmt(ch.honorablekills)}</b><span>Honor killovi</span></div>
+      <div class="stat"><b>${(ch._eq||[]).length}</b><span>Itema</span></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost sm" style="flex:1" onclick="addCmp()">⚔ Dodaj u poređenje</button>
+      <a class="btn ghost sm" style="flex:1;text-align:center;text-decoration:none" href="${ARMORY}/character/${encodeURIComponent(ch.name)}/${encodeURIComponent(ch.realm)}/summary" target="_blank">Warmane ↗</a>
+    </div>
+  </div>
+  <div class="tabs">${[["gear","Gear"],["model","3D lik"],["talents","Talenti"],["prof","Profesije"],["pvp","PvP"]].map(([k,l])=>`<button class="tab ${k===tab?"on":""}" onclick="S.params.tab='${k}';viewChar(S.params)">${l}</button>`).join("")}</div>
+  <div id="tabc"></div>`;
+  const t=$("#tabc");
+  if (tab==="gear") t.innerHTML = tabGear(ch);
+  else if (tab==="model") { t.innerHTML = tabModel(ch); start3D(ch); }
+  else if (tab==="talents") t.innerHTML = tabTalents(ch);
+  else if (tab==="prof") t.innerHTML = tabProf(ch);
+  else if (tab==="pvp") t.innerHTML = tabPvp(ch);
+}
+function icoHtml(i, label, cls="ico"){
+  const q = i?i.quality:0, u = i?iconUrl(i.icon):"";
+  return `<div class="${cls} b${q}" style="${u?`background-image:url('${u}')`:""}">${u?"":esc(label||"")}</div>`;
+}
+function tabGear(ch){
+  const eq=ch._eq||[]; if(!eq.length) return `<div class="card empty">Nema podataka o opremi.</div>`;
+  return `<div class="card">${eq.map((e,k)=>{ const i=e._i; const q=i?i.quality:1;
+    return `<div class="item" onclick="showTip(${k})">${icoHtml(i, slotName(i&&i.slot).slice(0,4))}
+      <div style="flex:1;min-width:0"><div class="nm q${q}">${esc((i&&i.name)||e.name||("Item "+itemIdOf(e)))}</div>
+      <div class="sm mut">${slotName(i&&i.slot)}${i&&i.ilvl?" · ilvl "+i.ilvl:""}${e.transmog?" · transmog":""}</div></div>
+      ${e._gs?`<span class="sm" style="color:${gsColor(ch._gs)}">${e._gs}</span>`:""}</div>`; }).join("")}</div>`;
+}
+const SLOT_NAMES={1:"Glava",2:"Vrat",3:"Ramena",4:"Košulja",5:"Prsa",20:"Prsa",6:"Pojas",7:"Noge",8:"Stopala",9:"Zglobovi",10:"Ruke",11:"Prsten",12:"Trinket",13:"Jednoručno",21:"Glavna ruka",22:"Druga ruka",23:"Druga ruka",14:"Štit",15:"Daljinsko",25:"Bacanje",26:"Daljinsko",28:"Relic",16:"Plašt",17:"Dvoručno",19:"Tabard"};
+const slotName = s => SLOT_NAMES[s]||"Item";
+function showTip(k){
+  const e=S.cur._eq[k]; const i=e&&e._i; closeTip();
+  const d=document.createElement("div"); d.className="tip";
+  d.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="q${i?i.quality:1}">${esc((i&&i.name)||e.name||"")}</b><button class="btn sm" onclick="closeTip()">✕</button></div>
+   ${i&&i.tooltip?`<div>${sanitizeTip(i.tooltip)}</div>`:`<div class="mut">Tooltip nije dostupan.</div>`}
+   <div style="margin-top:8px"><a href="https://www.wowhead.com/wotlk/item=${itemIdOf(e)}" target="_blank">Otvori na Wowheadu ↗</a></div>`;
+  document.body.appendChild(d);
+}
+function closeTip(){ document.querySelectorAll(".tip").forEach(t=>t.remove()); }
+function sanitizeTip(h){ const d=document.createElement("div"); d.innerHTML=h;
+  d.querySelectorAll("script,iframe,object,embed,style,link").forEach(n=>n.remove());
+  d.querySelectorAll("*").forEach(n=>{[...n.attributes].forEach(a=>{ if(/^on/i.test(a.name)||(a.name==="href"&&/^\s*javascript:/i.test(a.value))) n.removeAttribute(a.name); });
+    if (n.tagName==="A"){ const h=n.getAttribute("href")||""; if(h.startsWith("/")) n.setAttribute("href","https://www.wowhead.com"+h); n.setAttribute("target","_blank"); } });
+  return d.innerHTML; }
+
+function tabTalents(ch){
+  const t=ch.talents; if(!t||!t.length) return `<div class="card empty">Nema talenata.</div>`;
+  return t.map((s,ix)=>{ let pts="";
+    if (Array.isArray(s.points)) { const arr=s.points.map(p=>Array.isArray(p)?p.reduce((a,b)=>a+num(b),0):num(p)); pts=arr.join(" / "); }
+    return `<div class="card"><div class="row" style="justify-content:space-between"><b>${ix===0?"Glavni spec":"Drugi spec"}</b><span class="badge">${esc(s.tree||"?")}</span></div>
+    ${pts?`<div class="gs hand" style="margin-top:8px;color:var(--g)">${pts}</div>`:""}</div>`; }).join("");
+}
+function tabProf(ch){
+  const p=ch.professions; if(!p||!p.length) return `<div class="card empty">Nema profesija.</div>`;
+  return `<div class="card">${p.map(x=>{const s=num(x.skill),m=450; return `<div style="margin:6px 0 12px">
+    <div class="row" style="justify-content:space-between"><b>${esc(x.name)}</b><span class="mut">${s}/${m}</span></div>
+    <div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,s/m*100)}%"></i></div></div>`}).join("")}</div>`;
+}
+function tabPvp(ch){
+  const t=ch.pvpteams||[];
+  return `<div class="card"><div class="stats" style="margin-top:0">
+    <div class="stat"><b>${fmt(ch.honorablekills)}</b><span>Honor killovi</span></div>
+    <div class="stat"><b>${t.length}</b><span>Arena timova</span></div>
+    <div class="stat"><b>${t.length?Math.max(...t.map(x=>num(x.rating))):"–"}</b><span>Najbolji rating</span></div></div></div>
+   ${t.map(x=>`<div class="card row"><span class="badge">${esc(x.type||"")}</span><div style="flex:1"><b>${esc(x.name||"")}</b>
+     ${x.rank?`<div class="sm mut">Rank ${esc(x.rank)}</div>`:""}</div><div class="gs" style="font-size:22px;color:var(--g)">${esc(x.rating||"")}</div></div>`).join("")}`;
+}
+
+/* ---------- Paper doll + 3D model ---------- */
+const DOLL_L=[1,2,3,16,5,4,19,9], DOLL_R=[10,6,7,8,11,11,12,12], DOLL_B=["mh","oh",15];
+function dollSlots(ch){
+  const by={}; (ch._eq||[]).forEach((e,k)=>{ const s=e._i&&e._i.slot; if(!s) return;
+    let key = s===20?5 : s===14||s===23||s===22?"oh" : s===21||s===17?"mh" : s===13?(by.mh?"oh":"mh") : (s===25||s===26||s===28)?15 : s;
+    (by[key]=by[key]||[]).push(k); });
+  return by;
+}
+function dollCell(ch, by, key, used){
+  const list=by[key]||[]; const idx=(used[key]=(used[key]||0)); used[key]++;
+  const k=list[idx]; const e=k!=null?ch._eq[k]:null; const i=e&&e._i;
+  const u=i?iconUrl(i.icon):"";
+  return `<div class="slot ${i?"b"+i.quality:""}" ${k!=null?`onclick="showTip(${k})"`:""} style="${u?`background-image:url('${u}')`:""}">${u?"":(i?esc(slotName(i.slot).slice(0,4)):"")}</div>`;
+}
+function tabModel(ch){
+  const by=dollSlots(ch), used={}; const col=CLASS[ch.class]||"#8cff2e";
+  return `<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><b>3D lik</b><span class="sm mut">prstom vrti · dva prsta zum</span></div>
+    <div id="model3d"><div id="m3s" class="empty sm" style="position:absolute;inset:0;display:grid;place-items:center">Učitavam 3D model…</div></div></div>
+  <div class="card"><b>Oprema</b><div class="doll" style="margin-top:10px">
+    <div class="side">${DOLL_L.map(s=>dollCell(ch,by,s,used)).join("")}</div>
+    <div class="center" style="color:${col}">
+      <svg class="sil" viewBox="0 0 100 200" fill="currentColor" opacity=".35"><circle cx="50" cy="22" r="15"/><path d="M28 42h44l10 50-10 4-6-30v52l4 66H58l-8-56-8 56H30l4-66V66l-6 30-10-4z"/></svg>
+      <div class="hand" style="margin-top:6px;font-size:20px">${esc(ch.name)}</div>
+      <div class="sm mut">${esc(ch.race)} ${esc(ch.class)}</div>
+      <div class="gs" style="margin:6px 0 10px;color:${gsColor(ch._gs)}">${ch._gs||""}</div>
+    </div>
+    <div class="side">${DOLL_R.map(s=>dollCell(ch,by,s,used)).join("")}</div>
+    <div class="bottom">${DOLL_B.map(s=>dollCell(ch,by,s,used)).join("")}</div>
+  </div></div>`;
+}
+let viewerLoad=null;
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>rej(new Error("Ne mogu učitati "+src)); document.head.appendChild(s); }); }
+function ensureViewer(){
+  if (viewerLoad) return viewerLoad;
+  window.WH = window.WH || {}; window.WH.debug = function(){}; window.WH.defaultAnimation = "Stand";
+  window.WH.WebP = { getImageExtension: () => ".webp" };
+  window.CONTENT_PATH = "https://wow.zamimg.com/modelviewer/wrath/";
+  viewerLoad = (window.jQuery?Promise.resolve():loadScript("https://code.jquery.com/jquery-3.7.1.min.js"))
+    .then(()=>loadScript(window.CONTENT_PATH+"viewer/viewer.min.js"));
+  viewerLoad.catch(()=>{viewerLoad=null});
+  return viewerLoad;
+}
+async function start3D(ch){
+  const st=()=>$("#m3s");
+  const raceId = RACE_ID[ch.race]; const g = String(ch.gender||"").toLowerCase().startsWith("f") ? 1 : 0;
+  const items=(ch._eq||[]).map(e=>e._i).filter(i=>i&&i.displayId&&i.slot&&![2,11,12].includes(i.slot)).map(i=>[i.slot,i.displayId]);
+  if (!raceId){ if(st()) st().textContent="Nepoznata rasa za 3D."; return; }
+  if (!items.length && S.params.realm!=="DEMO" && !(window.BashNative)) { if(st()) st().innerHTML="3D radi u APK verziji<br>(browser blokira Wowhead podatke)."; }
+  try {
+    await ensureViewer();
+    if (!$("#model3d") || typeof window.ZamModelViewer!=="function") throw new Error("viewer");
+    const c=$("#model3d");
+    new window.ZamModelViewer({
+      type: 2, contentPath: window.CONTENT_PATH, container: window.jQuery(c), aspect: c.clientWidth/c.clientHeight, hd: true,
+      items, models: { type: 16, id: RACE_MODEL[raceId] + (g?"female":"male") }
+    });
+    setTimeout(()=>{ const s=st(); if(s) s.remove(); }, 600);
+  } catch(e){
+    const s=st(); if(s) s.innerHTML = "3D model nije dostupan sada.<br><span class='mut'>Treba internet; Wowhead viewer ponekad ne radi. Oprema je ispod.</span>";
+  }
+}
+
+/* ---------- Guild ---------- */
+async function viewGuild(p){
+  const app=$("#app");
+  app.innerHTML = head(esc(p.name), esc(p.realm), true) + `<div class="spin"></div>`;
+  let gd; try { gd = await apiGuild(p.name,p.realm); } catch(e){ app.innerHTML = head(esc(p.name), esc(p.realm), true)+`<div class="card err">${esc(e.message)}</div>`; return; }
+  if (S.view!=="guild" || S.params!==p) return;
+  let roster=(gd.roster||gd.members||[]).map(m=>({...m, realm:p.realm}));
+  const f = p.filter||"all", sort = p.sort||"level";
+  const online = roster.filter(m=>m.online).length;
+  const classes = {}; roster.forEach(m=>classes[m.class]=(classes[m.class]||0)+1);
+  let list = roster.filter(m=> f==="all" || (f==="online"&&m.online) || m.class===f);
+  list.sort((a,b)=> sort==="name"? String(a.name).localeCompare(b.name) : sort==="ach"? num(b.achievementpoints)-num(a.achievementpoints) : num(b.level)-num(a.level) || (b.online?1:0)-(a.online?1:0));
+  app.innerHTML = head(`&lt;${esc(gd.name||p.name)}&gt;`, `${esc(p.realm)} · ${roster.length} članova · ${online} online`, true) + `
+   <div class="card"><div class="chips" style="margin-bottom:8px">
+     ${[["all","Svi"],["online","Online"]].map(([k,l])=>`<button class="chip ${f===k?"on":""}" onclick="S.params.filter='${k}';viewGuild(S.params)">${l}</button>`).join("")}
+     ${Object.keys(classes).sort().map(c=>`<button class="chip ${f===c?"on":""}" style="color:${CLASS[c]||"#fff"}" onclick="S.params.filter='${esc(c)}';viewGuild(S.params)">${esc(c)} ${classes[c]}</button>`).join("")}</div>
+     <div class="chips">${[["level","Level"],["name","Ime"],["ach","Achievementi"]].map(([k,l])=>`<button class="chip ${sort===k?"on":""}" onclick="S.params.sort='${k}';viewGuild(S.params)">↕ ${l}</button>`).join("")}</div></div>
+   <div class="card list">${list.length?list.map(charRow).join(""):`<div class="empty">Nema članova.</div>`}</div>`;
+}
+
+/* ---------- Compare ---------- */
+function addCmp(){ const ch=S.cur; const e={name:ch.name,realm:S.params.realm};
+  if (!S.cmp[0]||(S.cmp[0].name===e.name&&S.cmp[0].realm===e.realm)) S.cmp[0]=e; else S.cmp[1]=e;
+  LS.set("cmp",S.cmp); toast(S.cmp[1]?"Spremno za poređenje ⚔":"Dodaj još jedan lik"); if(S.cmp[0]&&S.cmp[1]) go("compare"); }
+async function viewCompare(){
+  const app=$("#app"); const [a,b]=S.cmp;
+  if (!a||!b){ app.innerHTML = head("Poredi","Dva lika jedan pored drugog") + `<div class="card empty">Otvori lik i klikni <b>⚔ Dodaj u poređenje</b>, pa isto za drugi lik.<br><br>${a?`Prvi: <b>${esc(a.name)}</b>`:""}</div>`; return; }
+  app.innerHTML = head("Poredi","",false)+`<div class="spin"></div>`;
+  let A,B; try{ [A,B]=await Promise.all([loadChar(a.name,a.realm),loadChar(b.name,b.realm)]); }catch(e){ app.innerHTML=head("Poredi","")+`<div class="card err">${esc(e.message)}</div>`; return; }
+  if (S.view!=="compare") return;
+  const rows=[["GearScore",A._gs,B._gs],["Prosj. ilvl",A._ilvl,B._ilvl],["Achievementi",num(A.achievementpoints),num(B.achievementpoints)],["Honor killovi",num(A.honorablekills),num(B.honorablekills)],
+    ["Najbolja arena",Math.max(0,...(A.pvpteams||[]).map(x=>num(x.rating))),Math.max(0,...(B.pvpteams||[]).map(x=>num(x.rating)))]];
+  const nm=(c)=>`<div style="text-align:center;cursor:pointer" onclick="go('char',${J({name:c.name,realm:c.realm})})"><div class="crest" style="margin:0 auto 6px;width:52px;height:52px;background:${CLASS[c.class]||"#8cff2e"}">${esc((c.class||"?")[0])}</div><b style="color:${CLASS[c.class]||"#fff"}">${esc(c.name)}</b><div class="sm mut">${esc(c.class)}</div></div>`;
+  app.innerHTML = head("Poredi","") + `<div class="card"><div class="cmp">${nm(A)}${nm(B)}</div>
+   <div style="margin-top:12px">${rows.map(([l,x,y])=>`<div class="vs"><div class="l ${x>y?"win":""}">${fmt(x)}</div><div class="m">${l}</div><div class="${y>x?"win":""}">${fmt(y)}</div></div>`).join("")}</div>
+   <button class="btn ghost sm" style="margin-top:12px;width:100%" onclick="S.cmp=[null,null];LS.set('cmp',S.cmp);render()">Očisti</button></div>`;
+}
+
+/* ---------- Demo data (offline preview) ---------- */
+const DEMO_ITEMS = {
+ 900001:{id:900001,name:"Demo Helm of the Lich",ilvl:264,quality:4,slot:1},900002:{id:900002,name:"Demo Pendant",ilvl:264,quality:4,slot:2},
+ 900003:{id:900003,name:"Demo Pauldrons",ilvl:264,quality:4,slot:3},900004:{id:900004,name:"Demo Cloak",ilvl:251,quality:4,slot:16},
+ 900005:{id:900005,name:"Demo Battleplate",ilvl:264,quality:4,slot:5},900006:{id:900006,name:"Demo Bracers",ilvl:264,quality:4,slot:9},
+ 900007:{id:900007,name:"Demo Gauntlets",ilvl:264,quality:4,slot:10},900008:{id:900008,name:"Demo Girdle",ilvl:264,quality:4,slot:6},
+ 900009:{id:900009,name:"Demo Legplates",ilvl:264,quality:4,slot:7},900010:{id:900010,name:"Demo Sabatons",ilvl:264,quality:4,slot:8},
+ 900011:{id:900011,name:"Demo Ashen Band",ilvl:264,quality:4,slot:11},900012:{id:900012,name:"Demo Signet",ilvl:251,quality:4,slot:11},
+ 900013:{id:900013,name:"Demo Fang",ilvl:264,quality:4,slot:12},900014:{id:900014,name:"Demo Tiny Abomination",ilvl:264,quality:4,slot:12},
+ 900015:{id:900015,name:"Demo Shadowmourne",ilvl:284,quality:5,slot:17},900016:{id:900016,name:"Demo Sigil",ilvl:264,quality:4,slot:28},
+ 900017:{id:900017,name:"Demo Tabard",ilvl:1,quality:1,slot:19}
+};
+const DEMO_CHAR = {name:"Bashdk",realm:"DEMO",online:true,level:"80",faction:"Horde",gender:"Male",race:"Blood Elf",class:"Death Knight",
+ honorablekills:"12873",guild:"Bash Squad",achievementpoints:"9420",
+ equipment:Object.keys(DEMO_ITEMS).map(id=>({name:DEMO_ITEMS[id].name,item:id,transmog:""})),
+ talents:[{tree:"Unholy",points:[0,17,54]},{tree:"Frost",points:[3,57,11]}],
+ professions:[{name:"Blacksmithing",skill:"450"},{name:"Mining",skill:"450"}],
+ pvpteams:[{type:"2v2",name:"Bash Bros",rating:"2140",rank:"312"},{type:"3v3",name:"Monster Green",rating:"1890",rank:""}]};
+const DEMO_GUILD = {name:"Bash Squad",realm:"DEMO",roster:[
+ {name:"Bashdk",online:true,level:"80",class:"Death Knight",race:"Blood Elf",achievementpoints:"9420"},
+ {name:"Healbasa",online:true,level:"80",class:"Priest",race:"Undead",achievementpoints:"7120"},
+ {name:"Totemka",online:false,level:"80",class:"Shaman",race:"Troll",achievementpoints:"5300"},
+ {name:"Pewpew",online:false,level:"72",class:"Hunter",race:"Orc",achievementpoints:"2210"},
+ {name:"Frosty",online:true,level:"80",class:"Mage",race:"Blood Elf",achievementpoints:"8050"}]};
+
+/* ---------- Hacker particle background ---------- */
+(function fx(){
+  const c=$("#fx"), x=c.getContext("2d"); let W,H,P=[];
+  function rs(){ W=c.width=innerWidth; H=c.height=innerHeight; P=Array.from({length:Math.min(60,Math.floor(W*H/14000))},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3})); }
+  rs(); addEventListener("resize",rs);
+  (function loop(){ x.clearRect(0,0,W,H);
+    for(const p of P){ p.x+=p.vx; p.y+=p.vy; if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1;
+      x.fillStyle="#8cff2e"; x.fillRect(p.x,p.y,1.6,1.6); }
+    for(let i=0;i<P.length;i++) for(let j=i+1;j<P.length;j++){ const a=P[i],b=P[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<110){ x.strokeStyle=`rgba(140,255,46,${(1-d/110)*.18})`; x.beginPath(); x.moveTo(a.x,a.y); x.lineTo(b.x,b.y); x.stroke(); } }
+    requestAnimationFrame(loop); })();
+})();
+
+render();
+</script>
+</body>
+</html>
