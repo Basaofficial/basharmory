@@ -23,20 +23,35 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Version
+        run: |
+          VC=$(( ${{ github.run_number }} + 100 ))
+          echo "VC=$VC" >> $GITHUB_ENV
+          echo "VER=$(tr -d '[:space:]' < version.txt).$VC" >> $GITHUB_ENV
+
       - name: Build APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: |
+          gradle assembleDebug --no-daemon --stacktrace -Pvc=${{ env.VC }} -Pvn=${{ env.VER }}
+          cp app/build/outputs/apk/debug/BashArmory-debug.apk BashArmory.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: BashArmory-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: BashArmory.apk
 
-      - name: Publish release (download link)
+      - name: Notes
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          T=$(printf '%s\n' "$MSG" | head -n1 | sed -E 's/^v[0-9.]+: *//')
+          printf '🆕 Nova verzija %s – %s\n' "$VER" "${T:-poboljšanja}" > notes.txt
+
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "#Bash Armory"
-          body: "Najnovija verzija #Bash Armory APK-a. Skini BashArmory-debug.apk i instaliraj."
-          files: app/build/outputs/apk/debug/BashArmory-debug.apk
+          tag_name: v${{ env.VC }}
+          name: "#Bash Armory ${{ env.VER }}"
+          files: BashArmory.apk
+          body_path: notes.txt
           make_latest: true

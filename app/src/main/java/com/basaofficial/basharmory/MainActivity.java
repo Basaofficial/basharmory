@@ -5,7 +5,9 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -35,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
+
+    static volatile boolean visible = false;
 
     private static final int GREEN = Color.parseColor("#8CFF2E");
     private static final String UA_MOBILE = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
@@ -100,6 +104,44 @@ public class MainActivity extends Activity {
         buildOverlay(root);
         CookieManager.getInstance().setAcceptCookie(true);
         web.loadUrl("file:///android_asset/index.html");
+        UpdateJob.schedule(this);
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 7);
+        }
+        if (getIntent() != null && getIntent().getBooleanExtra("openUpdate", false)) pendingOpenUpdate = true;
+    }
+
+    private boolean pendingOpenUpdate = false;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        visible = true;
+        Updater.ui = this;
+        Updater.maybeCheck(this, 30 * 60_000L);
+        if (pendingOpenUpdate) { pendingOpenUpdate = false; web.postDelayed(() -> js("window.openUpdate && window.openUpdate()"), 1200); }
+    }
+
+    @Override
+    protected void onPause() {
+        visible = false;
+        if (Updater.ui == this) Updater.ui = null;
+        super.onPause();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.getBooleanExtra("openUpdate", false)) js("window.openUpdate && window.openUpdate()");
+    }
+
+    void js(final String code) {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); });
+    }
+
+    /** Called by Updater with {state, ver, pct, msg…}. */
+    void onUpdateEvent(JSONObject o) {
+        js("window.onUpdate && window.onUpdate(" + o.toString() + ")");
     }
 
     private int dp(int v) {
@@ -222,6 +264,56 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void post(final String id, final String url, final String body) { request(id, url, body); }
+
+        @JavascriptInterface
+        public String updInfo() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("ver", Updater.currentName(MainActivity.this));
+                o.put("code", Updater.currentCode(MainActivity.this));
+                o.put("mode", Updater.prefs(MainActivity.this).getString("upd", "auto"));
+                o.put("canInstall", Updater.canInstall(MainActivity.this));
+                JSONObject l = Updater.latest;
+                if (l != null) o.put("latest", l);
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface
+        public void updCheck() { Updater.checkAsync(MainActivity.this, true); }
+
+        @JavascriptInterface
+        public void updInstall() { Updater.installReady(MainActivity.this); }
+
+        @JavascriptInterface
+        public void updSnooze() { Updater.snooze(MainActivity.this); }
+
+        @JavascriptInterface
+        public void updMode(String m) {
+            if ("auto".equals(m) || "ask".equals(m) || "off".equals(m))
+                Updater.prefs(MainActivity.this).edit().putString("upd", m).apply();
+        }
+
+        @JavascriptInterface
+        public void updPerm() {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
+                } catch (Exception e) {
+                    try { startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS)); } catch (Exception ignored) {}
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void share(final String text) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("text/plain");
+                i.putExtra(Intent.EXTRA_TEXT, text);
+                try { startActivity(Intent.createChooser(i, "Podijeli")); } catch (Exception ignored) {}
+            });
+        }
 
         @JavascriptInterface
         public void openModel(final String json, final String title) {
