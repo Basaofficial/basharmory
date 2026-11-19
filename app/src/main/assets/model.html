@@ -38,16 +38,17 @@
 <script>
 /* Wowhead model viewer (wow.zamimg.com). The page runs on the wowhead.com origin
    (loadDataWithBaseURL) so the viewer can load its game data without CORS errors. */
+(function(){
 const DATA = /*__DATA__*/null;
 const CONTENT = "https://wow.zamimg.com/modelviewer/live/";
 const ICON = n => n ? `https://wow.zamimg.com/images/wow/icons/large/${String(n).toLowerCase()}.jpg` : "";
-const $ = id => document.getElementById(id);
+const byId = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-function step(t, pct){ $("lds").textContent = t; if (pct != null) $("ldp").style.width = pct + "%"; }
+function step(t, pct){ byId("lds").textContent = t; if (pct != null) byId("ldp").style.width = pct + "%"; }
 function fail(msg){
-  $("ld").classList.remove("out");
-  $("lds").innerHTML = `<div class="err">3D se nije učitao (${esc(msg)}).${firstErr && firstErr!==msg ? `<br><span style="opacity:.7">${esc(firstErr).slice(0,160)}</span>` : ""}</div>`;
-  if (window.BashPanel && BashPanel.warmane) $("lds").insertAdjacentHTML("afterend", `<button class="wb" onclick="BashPanel.warmane()">Otvori Warmane 3D</button>`);
+  byId("ld").classList.remove("out");
+  byId("lds").innerHTML = `<div class="err">3D se nije učitao (${esc(msg)}).${firstErr && firstErr!==msg ? `<br><span style="opacity:.7">${esc(firstErr).slice(0,160)}</span>` : ""}</div>`;
+  if (window.BashPanel && BashPanel.warmane) byId("lds").insertAdjacentHTML("afterend", `<button class="wb" onclick="BashPanel.warmane()">Otvori Warmane 3D</button>`);
 }
 let firstErr = "";
 window.onerror = (m) => { if (!firstErr) firstErr = String(m); };
@@ -66,10 +67,10 @@ window.WH = {
 };
 
 function buildUi(){
-  const d = DATA, ui = $("ui");
-  $("ldn").textContent = d.name || "";
-  $("ldn").style.color = d.color || "#8cff2e";
-  if (d.classIcon) $("ldi").style.backgroundImage = `url('${ICON(d.classIcon)}')`;
+  const d = DATA, ui = byId("ui");
+  byId("ldn").textContent = d.name || "";
+  byId("ldn").style.color = d.color || "#8cff2e";
+  if (d.classIcon) byId("ldi").style.backgroundImage = `url('${ICON(d.classIcon)}')`;
   if (d.loading) return;
   if (d.panel) {
     window.buildPanelUi(d);
@@ -132,7 +133,7 @@ async function start(){
   const used = {}, items = [];
   list.forEach(r => { if (!r.display) return; const s = viewerSlot(r.inv, used); if (!s || used[s]) return; used[s] = 1; items.push([s, r.display]); });
   step("Crtam lika…", 85);
-  const box = $("m");
+  const box = byId("m");
   const raceGender = DATA.race * 2 - 1 + DATA.gender;
   const opts = {
     type: 2, contentPath: CONTENT, container: jQuery(box),
@@ -144,11 +145,12 @@ async function start(){
   if (cc && cc.options.length) opts.charCustomization = cc;
   viewer = await new ZamModelViewer(opts);
   step("Gotovo", 100);
-  setTimeout(() => $("ld").classList.add("out"), 1500);
+  setTimeout(() => byId("ld").classList.add("out"), 1500);
   setTimeout(() => { if (!box.querySelector("canvas")) fail(firstErr || "model se nije nacrtao"); }, 9000);
 }
-function anim(a){ try { viewer && viewer.renderer && viewer.renderer.models[0].setAnimation(a); } catch (e) {} }
+window.anim = function(a){ try { viewer && viewer.renderer && viewer.renderer.models[0].setAnimation(a); } catch (e) {} }
 start().catch(e => fail(e.message));
+})();
 </script>
 </body>
 </html>
