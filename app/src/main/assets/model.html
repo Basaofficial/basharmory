@@ -47,26 +47,15 @@ function step(t, pct){ $("lds").textContent = t; if (pct != null) $("ldp").style
 function fail(msg){
   $("ld").classList.remove("out");
   $("lds").innerHTML = `<div class="err">3D se nije učitao (${esc(msg)}).${firstErr && firstErr!==msg ? `<br><span style="opacity:.7">${esc(firstErr).slice(0,160)}</span>` : ""}</div>`;
-  if (DATA && DATA.panel && window.BashPanel && BashPanel.warmaneEmbed) {
-    $("lds").insertAdjacentHTML("beforeend", `<div class="st" style="margin-top:6px">Prebacujem na Warmane 3D…</div>`);
-    setTimeout(() => BashPanel.warmaneEmbed(), 2500);
-  } else if (window.BashPanel && BashPanel.warmane) $("lds").insertAdjacentHTML("afterend", `<button class="wb" onclick="BashPanel.warmane()">Otvori Warmane 3D</button>`);
+  if (window.BashPanel && BashPanel.warmane) $("lds").insertAdjacentHTML("afterend", `<button class="wb" onclick="BashPanel.warmane()">Otvori Warmane 3D</button>`);
 }
 let firstErr = "";
 window.onerror = (m) => { if (!firstErr) firstErr = String(m); };
-/* Globals the Wowhead viewer expects (same as wow-model-viewer/setup.js) */
+/* Isto kao v1.3 (kad je radilo s transmogom) */
+window.WH = window.WH || {};
+WH.debug = function(){}; WH.defaultAnimation = "Stand";
+WH.WebP = { getImageExtension: () => ".webp" };
 window.CONTENT_PATH = CONTENT;
-window.WOTLK_TO_RETAIL_DISPLAY_ID_API = "https://wotlk.murlocvillage.com/api/items";
-window.WH = {
-  debug: function(){}, defaultAnimation: "Stand",
-  WebP: { getImageExtension: () => ".webp" },
-  Wow: { Item: { INVENTORY_TYPE_HEAD:1, INVENTORY_TYPE_NECK:2, INVENTORY_TYPE_SHOULDERS:3, INVENTORY_TYPE_SHIRT:4, INVENTORY_TYPE_CHEST:5,
-    INVENTORY_TYPE_WAIST:6, INVENTORY_TYPE_LEGS:7, INVENTORY_TYPE_FEET:8, INVENTORY_TYPE_WRISTS:9, INVENTORY_TYPE_HANDS:10, INVENTORY_TYPE_FINGER:11,
-    INVENTORY_TYPE_TRINKET:12, INVENTORY_TYPE_ONE_HAND:13, INVENTORY_TYPE_SHIELD:14, INVENTORY_TYPE_RANGED:15, INVENTORY_TYPE_BACK:16,
-    INVENTORY_TYPE_TWO_HAND:17, INVENTORY_TYPE_BAG:18, INVENTORY_TYPE_TABARD:19, INVENTORY_TYPE_ROBE:20, INVENTORY_TYPE_MAIN_HAND:21,
-    INVENTORY_TYPE_OFF_HAND:22, INVENTORY_TYPE_HELD_IN_OFF_HAND:23, INVENTORY_TYPE_PROJECTILE:24, INVENTORY_TYPE_THROWN:25,
-    INVENTORY_TYPE_RANGED_RIGHT:26, INVENTORY_TYPE_QUIVER:27, INVENTORY_TYPE_RELIC:28, INVENTORY_TYPE_PROFESSION_TOOL:29, INVENTORY_TYPE_PROFESSION_ACCESSORY:30 } }
-};
 
 function buildUi(){
   const d = DATA, ui = $("ui");
@@ -81,45 +70,16 @@ function buildUi(){
   }
 }
 
-/* Load scripts through the phone (BashNet) and run them inline: then a crash shows the real message instead of "Script error." */
-function load(src){
-  if (window.BashNet && BashNet.fetchText) {
-    const code = BashNet.fetchText(src);
-    if (!code) return Promise.reject(new Error("nema veze sa Wowheadom"));
-    return new Promise((res, rej) => {
-      const prev = window.onerror; let err = null;
-      window.onerror = (m, f, l, c, e) => { err = e || new Error(m); return true; };
-      const s = document.createElement("script"); s.textContent = code + "\n//# sourceURL=" + src; document.head.appendChild(s);
-      window.onerror = prev;
-      if (err) { firstErr = (err && err.message) || String(err); rej(new Error("Wowhead viewer: " + firstErr)); } else res();
-    });
-  }
-  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("nema veze sa Wowheadom")); document.head.appendChild(s); });
-}
+function load(src){ return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("ne mogu učitati " + src)); document.head.appendChild(s); }); }
 
-/* inventory type -> viewer slot (viewer uses WH.Wow.Item inventory types; weapons go to 21/22) */
+/* WotLK inventory type -> viewer slot (v1.3) */
 function viewerSlot(inv, used){
-  if ([13,17,21].includes(inv)) { if (!used[21]) return 21; return used[22] ? 0 : 22; }
-  if (inv === 22) return 22;
-  if (inv === 14 || inv === 23) return used[22] ? 0 : inv;
-  if ([2,11,12,15,18,24,25,26,27,28].includes(inv)) return 0;  // neck, rings, trinkets, ranged: not drawn
-  return inv;                                                  // head, shoulders, shirt, chest/robe, waist, legs, feet, wrists, hands, back(16), tabard
-}
-/* WotLK display id -> retail display id (same service wow-model-viewer uses) */
-async function convertDisplay(itemId, wotlkDisplay){
-  try {
-    const r = await fetch(`${window.WOTLK_TO_RETAIL_DISPLAY_ID_API}/${itemId}/${wotlkDisplay}`);
-    const j = await r.json(); const d = (j.data || j).newDisplayId;
-    return d || wotlkDisplay;
-  } catch (e) { return wotlkDisplay; }
-}
-/* Default look for race/gender (face, hair…) – required by the retail viewer */
-async function customization(raceGender){
-  try {
-    const r = await fetch(`${CONTENT}meta/charactercustomization/${raceGender}.json`);
-    const j = await r.json(); const o = (j.data || j).Options || [];
-    return { options: o.filter(x => x.Choices && x.Choices.length).map(x => ({ optionId: x.Id, choiceId: x.Choices[0].Id })) };
-  } catch (e) { return null; }
+  if (inv === 16) return 15;                 // back
+  if (inv === 20) return 20;                 // robe
+  if ([13,17,21].includes(inv)) { if (!used[21]) return 21; return 22; }  // weapons
+  if ([14,22,23].includes(inv)) return 22;   // off-hand / shield
+  if ([15,25,26,28,2,11,12].includes(inv)) return 0; // ranged, neck, rings, trinkets: not shown
+  return inv;                                // head, shoulder, shirt, chest, waist, legs, feet, wrist, hands, tabard
 }
 async function retailDisplay(itemId){
   try {
@@ -131,13 +91,6 @@ async function retailDisplay(itemId){
   } catch (e) { return { display: 0, inv: 0 }; }
 }
 let viewer = null;
-function waitForCanvas(box){
-  return new Promise(res => {
-    let n = 0; const t = setInterval(() => { n++;
-      const c = box.querySelector("canvas");
-      if ((c && n > 6) || n > 40) { clearInterval(t); res(!!c); } }, 250);
-  });
-}
 async function start(){
   if (!DATA) { fail("nema podataka"); return; }
   buildUi();
@@ -145,34 +98,28 @@ async function start(){
   step("Učitavam 3D viewer…", 30);
   if (!window.jQuery) await load("https://code.jquery.com/jquery-3.7.1.min.js");
   await load(CONTENT + "viewer/viewer.min.js");
-  if (typeof ZamModelViewer !== "function") throw new Error("Wowhead viewer se nije pokrenuo" + (firstErr ? ": " + firstErr : ""));
+  if (typeof ZamModelViewer !== "function") throw new Error("viewer nije dostupan");
   step("Oblačim lika (gear i transmog)…", 55);
   const list = await Promise.all((DATA.items||[]).map(async it => {
-    const look = it.transmog || it.item;
+    const look = it.transmog || it.item;               // transmog = kako izgleda u igri
     let r = await retailDisplay(look);
     if (!r.display && it.transmog) r = await retailDisplay(it.item);
     if (!r.inv) r.inv = it.inv;
-    if (!r.display && it.display) r.display = await convertDisplay(it.item, it.display);
+    if (!r.display) r.display = it.display || 0;
     return r;
   }));
   const used = {}, items = [];
   list.forEach(r => { if (!r.display) return; const s = viewerSlot(r.inv, used); if (!s || used[s]) return; used[s] = 1; items.push([s, r.display]); });
-  step("Crtam lika…", 80);
+  step("Crtam lika…", 85);
   const box = $("m");
-  const raceGender = DATA.race * 2 - 1 + DATA.gender;
-  const opts = {
+  viewer = new ZamModelViewer({
     type: 2, contentPath: CONTENT, container: jQuery(box),
-    aspect: box.clientWidth / box.clientHeight, hd: true,
+    aspect: box.clientWidth / Math.max(1, box.clientHeight), hd: true,
     items: items,
-    models: { id: raceGender, type: 16 }
-  };
-  const cc = await customization(raceGender);
-  if (cc && cc.options.length) opts.charCustomization = cc;
-  viewer = await new ZamModelViewer(opts);
-  const ok = await waitForCanvas(box);
-  if (!ok) throw new Error("model se nije nacrtao");
+    models: { id: DATA.race * 2 - 1 + DATA.gender, type: 16 }
+  });
   step("Gotovo", 100);
-  setTimeout(() => $("ld").classList.add("out"), 900);
+  setTimeout(() => $("ld").classList.add("out"), 1500);
 }
 function anim(a){ try { viewer && viewer.renderer && viewer.renderer.models[0].setAnimation(a); } catch (e) {} }
 start().catch(e => fail(e.message));
