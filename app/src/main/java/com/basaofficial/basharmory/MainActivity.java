@@ -389,6 +389,43 @@ public class MainActivity extends Activity {
         return out.toByteArray();
     }
 
+    private WebView warmWeb;
+    private String warmId;
+
+    /** Opens a Warmane page in an invisible WebView so Warmane gives the app its session cookie
+        (achievements need it). Answers through __nativeCb when the page has loaded. */
+    void warmup(final String id, final String url) {
+        if (warmWeb == null) {
+            warmWeb = new WebView(this);
+            WebSettings ws = warmWeb.getSettings();
+            ws.setJavaScriptEnabled(true);
+            ws.setDomStorageEnabled(true);
+            CookieManager.getInstance().setAcceptCookie(true);
+            CookieManager.getInstance().setAcceptThirdPartyCookies(warmWeb, true);
+            warmWeb.setWebViewClient(new WebViewClient() {
+                @Override public void onPageFinished(WebView view, String u) {
+                    if (u == null || !u.contains("warmane.com")) return;
+                    // Cloudflare check pages finish too; give the real page a moment
+                    view.postDelayed(() -> finishWarm(true), 1500);
+                }
+            });
+            ((ViewGroup) web.getParent()).addView(warmWeb, new LinearLayout.LayoutParams(1, 1));
+            warmWeb.setAlpha(0f);
+        }
+        if (warmId != null) finishWarm(false);
+        warmId = id;
+        warmWeb.loadUrl(url);
+        web.postDelayed(() -> { if (id.equals(warmId)) finishWarm(true); }, 15000);
+    }
+
+    private void finishWarm(boolean ok) {
+        final String id = warmId;
+        if (id == null) return;
+        warmId = null;
+        CookieManager.getInstance().flush();
+        web.evaluateJavascript("window.__nativeCb(" + JSONObject.quote(id) + "," + ok + ",\"\")", null);
+    }
+
     private String modelHtml(String json) throws Exception {
         return asset("model.html").replace("/*__PANELUI__*/", asset("panel-ui.js")).replace("/*__DATA__*/null", json);
     }
@@ -523,6 +560,9 @@ public class MainActivity extends Activity {
         public void post(final String id, final String url, final String body) { request(id, url, body); }
 
         @JavascriptInterface
+        public void warm(final String id, final String url) { runOnUiThread(() -> warmup(id, url)); }
+
+        @JavascriptInterface
         public void setWatch(final String json) { WatchJob.setWatch(MainActivity.this, json); }
 
         @JavascriptInterface
@@ -626,6 +666,10 @@ public class MainActivity extends Activity {
                         os.close();
                     }
                     int code = c.getResponseCode();
+                    try {
+                        java.util.List<String> sc = c.getHeaderFields().get("Set-Cookie");
+                        if (sc != null) for (String v : sc) CookieManager.getInstance().setCookie(url, v);
+                    } catch (Exception ignored) {}
                     InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
                     if (in != null) {

@@ -66,20 +66,31 @@ function judge(doc, name){
   if (/\bearned\b|complete|completed|unlocked/i.test(cls)) return {state:"yes"};
   return {state:"maybe"};
 }
-async function loadRaidData(ch, realm){
-  if (realm==="DEMO") return {ok:true, res:DEMO_RAID};
-  const k="raid_"+realm+"/"+ch.name.toLowerCase(); if (S.cache[k]) return S.cache[k];
-  const url=warmaneUrl(ch,"achievements");
-  const parts=[];
-  try { parts.push(unwrapHtml(await getText(url))); } catch(e){}
-  for (const c of RAID_CATS){ try { parts.push(unwrapHtml(await postText(url,"category="+c))); } catch(e){} }
-  const html=parts.join("\n");
+function warmWarmane(url){
+  if (!(window.BashNative && window.BashNative.warm)) return Promise.resolve();
+  return new Promise(res=>{ const id="w"+(++reqId); pending[id]={res,rej:res}; window.BashNative.warm(id,url);
+    setTimeout(()=>{ if(pending[id]){delete pending[id];res();} },17000); });
+}
+async function fetchRaidHtml(url){
+  const jobs=[getText(url)].concat(RAID_CATS.map(c=>postText(url,"category="+c)));
+  const got=await Promise.allSettled(jobs);
+  return got.filter(g=>g.status==="fulfilled").map(g=>unwrapHtml(g.value)).join("\n");
+}
+function parseRaid(html){
   const doc=new DOMParser().parseFromString(html,"text/html");
   const all=RAIDS.flatMap(r=>r.a.map(x=>x.n));
   const res={}; let seen=0;
   all.forEach(n=>{ const r=judge(doc,n); res[n]=r; if(r.state!=="no") seen++; });
-  const anyAch = /achiev/i.test(html) && seen>0;
-  const out={ok:anyAch, res}; if (anyAch) S.cache[k]=out; return out;
+  return {ok:/achiev/i.test(html) && seen>0, res};
+}
+async function loadRaidData(ch, realm){
+  if (realm==="DEMO") return {ok:true, res:DEMO_RAID};
+  const k="raid_"+realm+"/"+ch.name.toLowerCase(); if (S.cache[k]) return S.cache[k];
+  const url=warmaneUrl(ch,"achievements");
+  if (!S.warmed){ await warmWarmane(url); S.warmed=true; }   // Warmane session cookie (bez nje ne daje achievemente)
+  let out=parseRaid(await fetchRaidHtml(url));
+  if (!out.ok){ await warmWarmane(url); out=parseRaid(await fetchRaidHtml(url)); } // još jednom, sa svježim cookiejem
+  if (out.ok) S.cache[k]=out; return out;
 }
 function raidStatus(r, res){
   const key=r.a.find(x=>x.key)||r.a[0]; const st=res[key.n]||{state:"no"};
