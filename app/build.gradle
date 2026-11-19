@@ -11,7 +11,7 @@ android {
         minSdk 24
         targetSdk 34
         versionCode((project.findProperty('vc') ?: '6').toString().toInteger())
-        versionName((project.findProperty('vn') ?: '1.5.1').toString())
+        versionName((project.findProperty('vn') ?: '1.5.2').toString())
     }
 
     signingConfigs {

@@ -17,6 +17,7 @@ import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -28,7 +29,13 @@ import android.widget.TextView;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -98,6 +105,7 @@ public class MainActivity extends Activity {
         panelWeb.setWebChromeClient(new WebChromeClient());
         panelWeb.addJavascriptInterface(new NetBridge(), "BashNet");
         panelWeb.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) { return proxy(req); }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 String host = req.getUrl().getHost();
                 return !(panelEmbed && host != null && host.endsWith("warmane.com"));
@@ -266,6 +274,7 @@ public class MainActivity extends Activity {
             }
         });
         overlayWeb.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) { return proxy(req); }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 String host = req.getUrl().getHost();
@@ -305,6 +314,79 @@ public class MainActivity extends Activity {
             in.close();
             return out.toString("UTF-8");
         } catch (Exception e) { return ""; }
+    }
+
+    /* 3D viewer fix: Wowhead's viewer and its game data live on wow.zamimg.com, which blocks
+       cross-origin use (CORS) -> "Script error." and nothing is drawn. The phone downloads these
+       files itself and hands them to the page with CORS allowed (same idea as the bypass-cors
+       server used by wow-model-viewer). Static files are cached on the phone so the next load is fast. */
+    private static boolean proxied(String host) {
+        return host != null && (host.equals("wow.zamimg.com") || host.equals("wotlk.murlocvillage.com") || host.equals("code.jquery.com"));
+    }
+
+    private WebResourceResponse proxy(WebResourceRequest req) {
+        try {
+            if (req.isForMainFrame() || !"GET".equalsIgnoreCase(req.getMethod())) return null;
+            Uri u = req.getUrl();
+            if (!proxied(u.getHost())) return null;
+            String url = u.toString();
+            Map<String, String> h = new HashMap<>();
+            h.put("Access-Control-Allow-Origin", "*");
+            h.put("Cache-Control", "max-age=86400");
+            boolean cacheable = "wow.zamimg.com".equals(u.getHost()) || "code.jquery.com".equals(u.getHost());
+            File dir = new File(getCacheDir(), "zam");
+            String key = Integer.toHexString(url.hashCode()) + "_" + url.length();
+            File body = new File(dir, key), meta = new File(dir, key + ".t");
+            if (cacheable && body.exists() && meta.exists()) {
+                String ct = new String(readAll(new FileInputStream(meta)), "UTF-8");
+                return response(ct, 200, h, new FileInputStream(body));
+            }
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setConnectTimeout(15000);
+            c.setReadTimeout(30000);
+            c.setRequestProperty("User-Agent", UA_MOBILE);
+            c.setRequestProperty("Referer", "https://www.wowhead.com/");
+            c.setRequestProperty("Origin", "https://www.wowhead.com");
+            int code = c.getResponseCode();
+            String ct = c.getContentType();
+            if (ct == null) ct = url.endsWith(".js") ? "application/javascript" : url.endsWith(".json") ? "application/json" : "application/octet-stream";
+            if (code != 200) {
+                c.disconnect();
+                return response(ct, (code >= 400 && code <= 599) ? code : 502, h, new ByteArrayInputStream(new byte[0]));
+            }
+            byte[] data = readAll(c.getInputStream());
+            c.disconnect();
+            if (cacheable) {
+                try {
+                    dir.mkdirs();
+                    FileOutputStream fo = new FileOutputStream(body); fo.write(data); fo.close();
+                    FileOutputStream fm = new FileOutputStream(meta); fm.write(ct.getBytes("UTF-8")); fm.close();
+                } catch (Exception ignored) {}
+            }
+            return response(ct, 200, h, new ByteArrayInputStream(data));
+        } catch (Exception e) {
+            return null; // let the WebView try on its own
+        }
+    }
+
+    private static WebResourceResponse response(String contentType, int code, Map<String, String> headers, InputStream in) {
+        String mime = contentType, enc = null;
+        int i = contentType.indexOf(';');
+        if (i >= 0) {
+            mime = contentType.substring(0, i).trim();
+            int j = contentType.toLowerCase().indexOf("charset=");
+            if (j >= 0) enc = contentType.substring(j + 8).trim();
+        }
+        String reason = code == 200 ? "OK" : code == 404 ? "Not Found" : "Error";
+        return new WebResourceResponse(mime, enc, code, reason, headers, in);
+    }
+
+    private static byte[] readAll(InputStream in) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[32768]; int n;
+        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        in.close();
+        return out.toByteArray();
     }
 
     private String modelHtml(String json) throws Exception {
